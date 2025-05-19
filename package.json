@@ -1,6 +1,6 @@
 {
   "name": "cognito-client",
-  "version": "0.0.75",
+  "version": "0.0.76",
   "description": "A clean, type-safe wrapper around Amazon Cognito providing camel-cased JavaScript structures for easier integration.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
