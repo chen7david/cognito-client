@@ -19,6 +19,12 @@ import {
   GetDeviceCommand,
   ForgetDeviceCommand,
   ListDevicesCommand,
+  DeleteUserAttributesCommand,
+  ConfirmDeviceCommand,
+  DeleteUserCommand,
+  ResendConfirmationCodeCommand,
+  SetUserSettingsCommand,
+  UpdateDeviceStatusCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { createMockCognitoClient, createMockAuthResult } from '../utils/testUtils';
 
@@ -44,12 +50,22 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
     GetDeviceCommand: jest.fn(),
     ForgetDeviceCommand: jest.fn(),
     ListDevicesCommand: jest.fn(),
+    DeleteUserAttributesCommand: jest.fn(),
+    ConfirmDeviceCommand: jest.fn(),
+    DeleteUserCommand: jest.fn(),
+    ResendConfirmationCodeCommand: jest.fn(),
+    SetUserSettingsCommand: jest.fn(),
+    UpdateDeviceStatusCommand: jest.fn(),
     AuthFlowType: {
       USER_PASSWORD_AUTH: 'USER_PASSWORD_AUTH',
       REFRESH_TOKEN_AUTH: 'REFRESH_TOKEN_AUTH',
     },
     ChallengeNameType: {
       NEW_PASSWORD_REQUIRED: 'NEW_PASSWORD_REQUIRED',
+    },
+    DeliveryMediumType: {
+      SMS: 'SMS',
+      EMAIL: 'EMAIL',
     },
   };
 });
@@ -794,6 +810,157 @@ describe('CognitoUserClient', () => {
       // Verify GlobalSignOutCommand was called with correct parameters
       expect(GlobalSignOutCommand).toHaveBeenCalledWith({
         AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('deleteUserAttributes', () => {
+    it('should successfully delete user attributes', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.deleteUserAttributes({
+        accessToken: 'mock-access-token',
+        attributeNames: ['custom:role', 'phone_number'],
+      });
+
+      // Verify DeleteUserAttributesCommand was called with correct parameters
+      expect(DeleteUserAttributesCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        UserAttributeNames: ['custom:role', 'phone_number'],
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('confirmDevice', () => {
+    it('should successfully confirm a device', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.confirmDevice({
+        accessToken: 'mock-access-token',
+        deviceKey: 'device-key-123',
+        deviceName: 'My iPhone',
+        deviceSecretVerifierConfig: {
+          passwordVerifier: 'password-verifier',
+          salt: 'salt-value',
+        },
+      });
+
+      // Verify ConfirmDeviceCommand was called with correct parameters
+      expect(ConfirmDeviceCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        DeviceKey: 'device-key-123',
+        DeviceName: 'My iPhone',
+        DeviceSecretVerifierConfig: {
+          PasswordVerifier: 'password-verifier',
+          Salt: 'salt-value',
+        },
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('should successfully delete a user', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.deleteUser({
+        accessToken: 'mock-access-token',
+      });
+
+      // Verify DeleteUserCommand was called with correct parameters
+      expect(DeleteUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('resendConfirmationCode', () => {
+    it('should successfully resend a confirmation code', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.resendConfirmationCode({
+        username: 'testuser',
+        clientMetadata: {
+          foo: 'bar',
+        },
+      });
+
+      // Verify ResendConfirmationCodeCommand was called with correct parameters
+      expect(ResendConfirmationCodeCommand).toHaveBeenCalledWith({
+        ClientId: '1234567890abcdef',
+        Username: 'testuser',
+        ClientMetadata: {
+          foo: 'bar',
+        },
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('setUserSettings', () => {
+    it('should successfully set user settings', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.setUserSettings({
+        accessToken: 'mock-access-token',
+        mfaOptions: [
+          {
+            deliveryMedium: 'SMS',
+            attributeName: 'phone_number',
+          },
+        ],
+      });
+
+      // Verify SetUserSettingsCommand was called with correct parameters
+      expect(SetUserSettingsCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        MFAOptions: [
+          {
+            DeliveryMedium: 'SMS',
+            AttributeName: 'phone_number',
+          },
+        ],
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('updateDeviceStatus', () => {
+    it('should successfully update device status', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.updateDeviceStatus({
+        accessToken: 'mock-access-token',
+        deviceKey: 'device-key-123',
+        deviceRememberedStatus: 'remembered',
+      });
+
+      // Verify UpdateDeviceStatusCommand was called with correct parameters
+      expect(UpdateDeviceStatusCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        DeviceKey: 'device-key-123',
+        DeviceRememberedStatus: 'remembered',
       });
 
       // Verify the response

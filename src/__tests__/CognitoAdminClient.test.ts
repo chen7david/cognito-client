@@ -28,6 +28,12 @@ import {
   AdminListDevicesCommand,
   AdminListGroupsForUserCommand,
   AdminUserGlobalSignOutCommand,
+  AdminDeleteUserAttributesCommand,
+  AdminDisableProviderForUserCommand,
+  AdminListUserAuthEventsCommand,
+  AdminSetUserSettingsCommand,
+  AdminUpdateAuthEventFeedbackCommand,
+  AdminUpdateDeviceStatusCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { createMockCognitoClient } from '../utils/testUtils';
 
@@ -62,6 +68,12 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
     AdminListDevicesCommand: jest.fn(),
     AdminListGroupsForUserCommand: jest.fn(),
     AdminUserGlobalSignOutCommand: jest.fn(),
+    AdminDeleteUserAttributesCommand: jest.fn(),
+    AdminDisableProviderForUserCommand: jest.fn(),
+    AdminListUserAuthEventsCommand: jest.fn(),
+    AdminSetUserSettingsCommand: jest.fn(),
+    AdminUpdateAuthEventFeedbackCommand: jest.fn(),
+    AdminUpdateDeviceStatusCommand: jest.fn(),
     AuthFlowType: {
       ADMIN_USER_PASSWORD_AUTH: 'ADMIN_USER_PASSWORD_AUTH',
     },
@@ -1244,6 +1256,201 @@ describe('CognitoAdminClient', () => {
         ],
         paginationToken: 'next-page-token',
       });
+    });
+  });
+
+  describe('adminDeleteUserAttributes', () => {
+    it('should successfully delete user attributes as admin', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.adminDeleteUserAttributes({
+        username: 'testuser',
+        attributeNames: ['custom:role', 'phone_number'],
+      });
+
+      // Verify AdminDeleteUserAttributesCommand was called with correct parameters
+      expect(AdminDeleteUserAttributesCommand).toHaveBeenCalledWith({
+        UserPoolId: 'us-east-1_abcdef123',
+        Username: 'testuser',
+        UserAttributeNames: ['custom:role', 'phone_number'],
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('adminDisableProviderForUser', () => {
+    it('should successfully disable a provider for a user', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.adminDisableProviderForUser({
+        username: 'testuser', // Note: username is in the type but not used in the API call
+        userProviderName: 'Facebook',
+        providerAttributeName: 'id',
+        providerAttributeValue: '12345678',
+      });
+
+      // Verify AdminDisableProviderForUserCommand was called with correct parameters
+      expect(AdminDisableProviderForUserCommand).toHaveBeenCalledWith({
+        UserPoolId: 'us-east-1_abcdef123',
+        User: {
+          ProviderName: 'Facebook',
+          ProviderAttributeName: 'id',
+          ProviderAttributeValue: '12345678',
+        },
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('adminListUserAuthEvents', () => {
+    it('should successfully list user auth events', async () => {
+      const mockDate = new Date();
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        AuthEvents: [
+          {
+            EventId: 'event-1',
+            EventType: 'SignIn',
+            CreationDate: mockDate,
+            EventResponse: 'Success',
+            EventRisk: {
+              RiskDecision: 'NoRisk',
+              RiskLevel: 'Low',
+            },
+            EventContextData: {
+              IpAddress: '192.168.1.1',
+              DeviceName: 'Chrome',
+              Timezone: 'UTC',
+              City: 'New York',
+              Country: 'USA',
+            },
+          },
+        ],
+        NextToken: 'next-token',
+      });
+
+      const result = await client.adminListUserAuthEvents({
+        username: 'testuser',
+        maxResults: 10,
+      });
+
+      // Verify AdminListUserAuthEventsCommand was called with correct parameters
+      expect(AdminListUserAuthEventsCommand).toHaveBeenCalledWith({
+        UserPoolId: 'us-east-1_abcdef123',
+        Username: 'testuser',
+        MaxResults: 10,
+        NextToken: undefined,
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        authEvents: [
+          {
+            eventId: 'event-1',
+            eventType: 'SignIn',
+            creationDate: mockDate,
+            eventResponse: 'Success',
+            eventRisk: {
+              riskDecision: 'NoRisk',
+              riskLevel: 'Low',
+            },
+            eventContextData: {
+              ipAddress: '192.168.1.1',
+              deviceName: 'Chrome',
+              timezone: 'UTC',
+              city: 'New York',
+              country: 'USA',
+            },
+          },
+        ],
+        nextToken: 'next-token',
+      });
+    });
+  });
+
+  describe('adminSetUserSettings', () => {
+    it('should successfully set user settings as admin', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.adminSetUserSettings({
+        username: 'testuser',
+        mfaOptions: [
+          {
+            deliveryMedium: 'SMS',
+            attributeName: 'phone_number',
+          },
+        ],
+      });
+
+      // Verify AdminSetUserSettingsCommand was called with correct parameters
+      expect(AdminSetUserSettingsCommand).toHaveBeenCalledWith({
+        UserPoolId: 'us-east-1_abcdef123',
+        Username: 'testuser',
+        MFAOptions: [
+          {
+            DeliveryMedium: 'SMS',
+            AttributeName: 'phone_number',
+          },
+        ],
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('adminUpdateAuthEventFeedback', () => {
+    it('should successfully update auth event feedback', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.adminUpdateAuthEventFeedback({
+        username: 'testuser',
+        eventId: 'event-1',
+        feedbackValue: 'Valid',
+      });
+
+      // Verify AdminUpdateAuthEventFeedbackCommand was called with correct parameters
+      expect(AdminUpdateAuthEventFeedbackCommand).toHaveBeenCalledWith({
+        UserPoolId: 'us-east-1_abcdef123',
+        Username: 'testuser',
+        EventId: 'event-1',
+        FeedbackValue: 'Valid',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('adminUpdateDeviceStatus', () => {
+    it('should successfully update device status as admin', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.adminUpdateDeviceStatus({
+        username: 'testuser',
+        deviceKey: 'device-key-123',
+        deviceRememberedStatus: 'remembered',
+      });
+
+      // Verify AdminUpdateDeviceStatusCommand was called with correct parameters
+      expect(AdminUpdateDeviceStatusCommand).toHaveBeenCalledWith({
+        UserPoolId: 'us-east-1_abcdef123',
+        Username: 'testuser',
+        DeviceKey: 'device-key-123',
+        DeviceRememberedStatus: 'remembered',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
     });
   });
 });

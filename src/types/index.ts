@@ -582,3 +582,148 @@ export type CognitoErrorInfo = {
   name: string;
   message: string;
 };
+
+/**
+ * Parameters for deleting user attributes
+ */
+export type DeleteUserAttributesParams = {
+  accessToken: string;
+  attributeNames: string[];
+};
+
+/**
+ * Parameters for confirming a device
+ */
+export type ConfirmDeviceParams = {
+  accessToken: string;
+  deviceKey: string;
+  deviceName?: string;
+  deviceSecretVerifierConfig?: {
+    passwordVerifier: string;
+    salt: string;
+  };
+};
+
+/**
+ * Parameters for deleting a user
+ */
+export type DeleteUserParams = {
+  accessToken: string;
+};
+
+/**
+ * Parameters for resending a confirmation code
+ */
+export type ResendConfirmationCodeParams = {
+  username: string;
+  clientMetadata?: Record<string, string>;
+};
+
+/**
+ * Parameters for setting user settings
+ */
+export type SetUserSettingsParams = {
+  accessToken: string;
+  mfaOptions: Array<{
+    deliveryMedium: string;
+    attributeName: string;
+  }>;
+};
+
+/**
+ * Parameters for updating device status
+ */
+export type UpdateDeviceStatusParams = {
+  accessToken: string;
+  deviceKey: string;
+  deviceRememberedStatus: 'remembered' | 'not_remembered';
+};
+
+/**
+ * Parameters for admin delete user attributes
+ */
+export type AdminDeleteUserAttributesParams = {
+  username: string;
+  attributeNames: string[];
+};
+
+/**
+ * Parameters for admin disable provider for user
+ */
+export type AdminDisableProviderForUserParams = {
+  username: string;
+  userProviderName: string;
+  providerAttributeName: string;
+  providerAttributeValue: string;
+};
+
+/**
+ * Parameters for admin list user auth events
+ */
+export type AdminListUserAuthEventsParams = {
+  username: string;
+  maxResults?: number;
+  nextToken?: string;
+};
+
+/**
+ * Auth event type
+ */
+export type AuthEventType = {
+  eventId: string;
+  eventType: string;
+  creationDate: Date;
+  eventResponse: string;
+  eventRisk?: {
+    riskDecision: string;
+    riskLevel: string;
+  };
+  challengeResponses?: Array<{
+    challengeName: string;
+    challengeResponse: string;
+  }>;
+  eventContextData?: {
+    ipAddress: string;
+    deviceName: string;
+    timezone: string;
+    city: string;
+    country: string;
+  };
+};
+
+/**
+ * Response for admin list user auth events
+ */
+export type AdminListUserAuthEventsResponse = {
+  authEvents: AuthEventType[];
+  nextToken?: string;
+};
+
+/**
+ * Parameters for admin set user settings
+ */
+export type AdminSetUserSettingsParams = {
+  username: string;
+  mfaOptions: Array<{
+    deliveryMedium: string;
+    attributeName: string;
+  }>;
+};
+
+/**
+ * Parameters for admin update auth event feedback
+ */
+export type AdminUpdateAuthEventFeedbackParams = {
+  username: string;
+  eventId: string;
+  feedbackValue: string;
+};
+
+/**
+ * Parameters for admin update device status
+ */
+export type AdminUpdateDeviceStatusParams = {
+  username: string;
+  deviceKey: string;
+  deviceRememberedStatus: 'remembered' | 'not_remembered';
+};

@@ -33,6 +33,13 @@ import {
   DeliveryMediumType,
   UserType,
   MFAOptionType,
+  AdminDeleteUserAttributesCommand,
+  AdminDisableProviderForUserCommand,
+  AdminListUserAuthEventsCommand,
+  AdminSetUserSettingsCommand,
+  AdminUpdateAuthEventFeedbackCommand,
+  AdminUpdateDeviceStatusCommand,
+  FeedbackValueType,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import {
@@ -76,6 +83,14 @@ import {
   GroupType,
   DeviceType,
   ListDevicesResponse,
+  AdminDeleteUserAttributesParams,
+  AdminDisableProviderForUserParams,
+  AdminListUserAuthEventsParams,
+  AdminListUserAuthEventsResponse,
+  AdminSetUserSettingsParams,
+  AdminUpdateAuthEventFeedbackParams,
+  AdminUpdateDeviceStatusParams,
+  AuthEventType,
 } from '../types';
 
 import {
@@ -995,6 +1010,192 @@ export class CognitoAdminClient {
     } catch (error) {
       const formattedError = formatError(error);
       throw new Error(`AdminUserGlobalSignOut error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Deletes user attributes as an admin
+   * @param params - Parameters with username and attribute names to delete
+   * @returns Success status
+   */
+  async adminDeleteUserAttributes(params: AdminDeleteUserAttributesParams): Promise<boolean> {
+    try {
+      const { username, attributeNames } = params;
+
+      await this.client.send(
+        new AdminDeleteUserAttributesCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          UserAttributeNames: attributeNames,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminDeleteUserAttributes error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Disables a provider for a user
+   * @param params - Parameters with username and provider information
+   * @returns Success status
+   */
+  async adminDisableProviderForUser(params: AdminDisableProviderForUserParams): Promise<boolean> {
+    try {
+      const { userProviderName, providerAttributeName, providerAttributeValue } = params;
+
+      await this.client.send(
+        new AdminDisableProviderForUserCommand({
+          UserPoolId: this.config.userPoolId,
+          User: {
+            ProviderName: userProviderName,
+            ProviderAttributeName: providerAttributeName,
+            ProviderAttributeValue: providerAttributeValue,
+          },
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminDisableProviderForUser error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Lists user auth events
+   * @param params - Parameters with username and optional pagination
+   * @returns List of auth events
+   */
+  async adminListUserAuthEvents(
+    params: AdminListUserAuthEventsParams,
+  ): Promise<AdminListUserAuthEventsResponse> {
+    try {
+      const { username, maxResults, nextToken } = params;
+
+      const response = await this.client.send(
+        new AdminListUserAuthEventsCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          MaxResults: maxResults,
+          NextToken: nextToken,
+        }),
+      );
+
+      const authEvents: AuthEventType[] = (response.AuthEvents || []).map((event) => ({
+        eventId: event.EventId || '',
+        eventType: event.EventType || '',
+        creationDate: event.CreationDate ? new Date(event.CreationDate) : new Date(),
+        eventResponse: event.EventResponse || '',
+        eventRisk: event.EventRisk
+          ? {
+              riskDecision: event.EventRisk.RiskDecision || '',
+              riskLevel: event.EventRisk.RiskLevel || '',
+            }
+          : undefined,
+        challengeResponses: event.ChallengeResponses
+          ? event.ChallengeResponses.map((cr) => ({
+              challengeName: cr.ChallengeName || '',
+              challengeResponse: cr.ChallengeResponse || '',
+            }))
+          : undefined,
+        eventContextData: event.EventContextData
+          ? {
+              ipAddress: event.EventContextData.IpAddress || '',
+              deviceName: event.EventContextData.DeviceName || '',
+              timezone: event.EventContextData.Timezone || '',
+              city: event.EventContextData.City || '',
+              country: event.EventContextData.Country || '',
+            }
+          : undefined,
+      }));
+
+      return {
+        authEvents,
+        nextToken: response.NextToken,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminListUserAuthEvents error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Sets user settings as an admin
+   * @param params - Parameters with username and MFA options
+   * @returns Success status
+   */
+  async adminSetUserSettings(params: AdminSetUserSettingsParams): Promise<boolean> {
+    try {
+      const { username, mfaOptions } = params;
+
+      await this.client.send(
+        new AdminSetUserSettingsCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          MFAOptions: mfaOptions.map((option) => ({
+            DeliveryMedium: option.deliveryMedium as DeliveryMediumType,
+            AttributeName: option.attributeName,
+          })),
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminSetUserSettings error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Updates auth event feedback as an admin
+   * @param params - Parameters with username, event ID, and feedback value
+   * @returns Success status
+   */
+  async adminUpdateAuthEventFeedback(params: AdminUpdateAuthEventFeedbackParams): Promise<boolean> {
+    try {
+      const { username, eventId, feedbackValue } = params;
+
+      await this.client.send(
+        new AdminUpdateAuthEventFeedbackCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          EventId: eventId,
+          FeedbackValue: feedbackValue as FeedbackValueType,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminUpdateAuthEventFeedback error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Updates device status as an admin
+   * @param params - Parameters with username, device key, and device status
+   * @returns Success status
+   */
+  async adminUpdateDeviceStatus(params: AdminUpdateDeviceStatusParams): Promise<boolean> {
+    try {
+      const { username, deviceKey, deviceRememberedStatus } = params;
+
+      await this.client.send(
+        new AdminUpdateDeviceStatusCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          DeviceKey: deviceKey,
+          DeviceRememberedStatus: deviceRememberedStatus,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminUpdateDeviceStatus error: ${formattedError.message}`);
     }
   }
 }

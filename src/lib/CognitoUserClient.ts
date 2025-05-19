@@ -20,6 +20,13 @@ import {
   AssociateSoftwareTokenCommand,
   VerifySoftwareTokenCommand,
   SetUserMFAPreferenceCommand,
+  DeleteUserAttributesCommand,
+  ConfirmDeviceCommand,
+  DeleteUserCommand,
+  ResendConfirmationCodeCommand,
+  SetUserSettingsCommand,
+  UpdateDeviceStatusCommand,
+  DeliveryMediumType,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import {
@@ -51,6 +58,12 @@ import {
   GlobalSignOutParams,
   CognitoErrorInfo,
   CognitoClientOptions,
+  DeleteUserAttributesParams,
+  ConfirmDeviceParams,
+  DeleteUserParams,
+  ResendConfirmationCodeParams,
+  SetUserSettingsParams,
+  UpdateDeviceStatusParams,
 } from '../types';
 
 import {
@@ -664,6 +677,155 @@ export class CognitoUserClient {
     } catch (error) {
       const formattedError = formatError(error);
       throw new Error(`RespondToNewPasswordChallenge error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Deletes attributes from the current user
+   * @param params - Parameters with access token and attribute names to delete
+   * @returns Success status
+   */
+  async deleteUserAttributes(params: DeleteUserAttributesParams): Promise<boolean> {
+    try {
+      const { accessToken, attributeNames } = params;
+
+      await this.client.send(
+        new DeleteUserAttributesCommand({
+          AccessToken: accessToken,
+          UserAttributeNames: attributeNames,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`DeleteUserAttributes error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Confirms a device for the current user
+   * @param params - Parameters with access token, device key, and optional device configuration
+   * @returns Success status
+   */
+  async confirmDevice(params: ConfirmDeviceParams): Promise<boolean> {
+    try {
+      const { accessToken, deviceKey, deviceName, deviceSecretVerifierConfig } = params;
+
+      await this.client.send(
+        new ConfirmDeviceCommand({
+          AccessToken: accessToken,
+          DeviceKey: deviceKey,
+          DeviceName: deviceName,
+          DeviceSecretVerifierConfig: deviceSecretVerifierConfig
+            ? {
+                PasswordVerifier: deviceSecretVerifierConfig.passwordVerifier,
+                Salt: deviceSecretVerifierConfig.salt,
+              }
+            : undefined,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`ConfirmDevice error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Deletes the current user
+   * @param params - Parameters with access token
+   * @returns Success status
+   */
+  async deleteUser(params: DeleteUserParams): Promise<boolean> {
+    try {
+      const { accessToken } = params;
+
+      await this.client.send(
+        new DeleteUserCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`DeleteUser error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Resends a confirmation code to confirm user registration
+   * @param params - Parameters with username
+   * @returns Success status
+   */
+  async resendConfirmationCode(params: ResendConfirmationCodeParams): Promise<boolean> {
+    try {
+      const { username, clientMetadata } = params;
+
+      await this.client.send(
+        new ResendConfirmationCodeCommand({
+          ClientId: this.config.clientId,
+          Username: username,
+          ClientMetadata: clientMetadata,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`ResendConfirmationCode error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Sets user settings like MFA options
+   * @param params - Parameters with access token and MFA options
+   * @returns Success status
+   */
+  async setUserSettings(params: SetUserSettingsParams): Promise<boolean> {
+    try {
+      const { accessToken, mfaOptions } = params;
+
+      await this.client.send(
+        new SetUserSettingsCommand({
+          AccessToken: accessToken,
+          MFAOptions: mfaOptions.map((option) => ({
+            DeliveryMedium: option.deliveryMedium as DeliveryMediumType,
+            AttributeName: option.attributeName,
+          })),
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`SetUserSettings error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Updates the status of a device
+   * @param params - Parameters with access token, device key, and device status
+   * @returns Success status
+   */
+  async updateDeviceStatus(params: UpdateDeviceStatusParams): Promise<boolean> {
+    try {
+      const { accessToken, deviceKey, deviceRememberedStatus } = params;
+
+      await this.client.send(
+        new UpdateDeviceStatusCommand({
+          AccessToken: accessToken,
+          DeviceKey: deviceKey,
+          DeviceRememberedStatus: deviceRememberedStatus,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`UpdateDeviceStatus error: ${formattedError.message}`);
     }
   }
 
