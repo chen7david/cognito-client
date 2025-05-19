@@ -23,6 +23,7 @@ import {
   RefreshTokenParams,
   ChangePasswordParams,
   CognitoErrorInfo,
+  CognitoClientOptions,
 } from '../types';
 
 import { mapAuthResult, mapToAttributeList, formatError } from '../utils/cognitoMapper';
@@ -37,11 +38,26 @@ export class CognitoUserClient {
   /**
    * Creates a new instance of CognitoUserClient
    * @param config - Configuration containing region, user pool ID, and client ID
+   * @param client - Optional CognitoIdentityProviderClient instance. If not provided, a new client will be created
    */
-  constructor(config: CognitoConfig) {
+  constructor(config: CognitoConfig, client?: CognitoIdentityProviderClient) {
     this.config = config;
-    this.client = new CognitoIdentityProviderClient({
-      region: config.region,
+    this.client =
+      client ||
+      new CognitoIdentityProviderClient({
+        region: config.region,
+      });
+  }
+
+  /**
+   * Creates a new CognitoIdentityProviderClient
+   * @param options - Client options containing region and optional credentials
+   * @returns A new CognitoIdentityProviderClient instance
+   */
+  static createClient(options: CognitoClientOptions): CognitoIdentityProviderClient {
+    return new CognitoIdentityProviderClient({
+      region: options.region,
+      credentials: options.credentials,
     });
   }
 

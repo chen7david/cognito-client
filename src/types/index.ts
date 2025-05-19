@@ -23,6 +23,14 @@ export type CognitoAdminConfig = CognitoConfig & {
 };
 
 /**
+ * Options for creating a CognitoIdentityProviderClient
+ */
+export type CognitoClientOptions = {
+  region: string;
+  credentials?: AwsCredentials;
+};
+
+/**
  * Authentication parameters for sign-in operations
  */
 export type AuthParams = {

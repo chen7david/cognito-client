@@ -8,14 +8,12 @@ import {
   ConfirmForgotPasswordCommand,
   ChangePasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
+import { createMockCognitoClient, createMockAuthResult } from '../utils/testUtils';
 
 // Mock the AWS SDK
 jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
-  const mockSend = jest.fn();
   return {
-    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
-      send: mockSend,
-    })),
+    CognitoIdentityProviderClient: jest.fn(),
     InitiateAuthCommand: jest.fn(),
     SignUpCommand: jest.fn(),
     ConfirmSignUpCommand: jest.fn(),
@@ -36,29 +34,36 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
 describe('CognitoUserClient', () => {
   let client: CognitoUserClient;
   let mockSend: jest.Mock;
+  let mockClient: CognitoIdentityProviderClient;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    client = new CognitoUserClient({
-      region: 'us-east-1',
-      userPoolId: 'us-east-1_abcdef123',
-      clientId: '1234567890abcdef',
-    });
-    // Get the mocked send function
-    mockSend = (CognitoIdentityProviderClient as jest.Mock).mock.results[0].value.send;
+    const { mockClient: mockedClient, mockSend: send } = createMockCognitoClient();
+    mockClient = mockedClient;
+    mockSend = send;
+
+    client = new CognitoUserClient(
+      {
+        region: 'us-east-1',
+        userPoolId: 'us-east-1_abcdef123',
+        clientId: '1234567890abcdef',
+      },
+      mockClient,
+    );
   });
 
   describe('signIn', () => {
     it('should successfully sign in a user', async () => {
       // Mock successful authentication response
+      const mockAuthResult = createMockAuthResult({
+        AccessToken: 'mock-access-token',
+        IdToken: 'mock-id-token',
+        RefreshToken: 'mock-refresh-token',
+        ExpiresIn: 3600,
+      });
+
       mockSend.mockResolvedValueOnce({
-        AuthenticationResult: {
-          AccessToken: 'mock-access-token',
-          IdToken: 'mock-id-token',
-          RefreshToken: 'mock-refresh-token',
-          ExpiresIn: 3600,
-          TokenType: 'Bearer',
-        },
+        AuthenticationResult: mockAuthResult,
       });
 
       const result = await client.signIn({

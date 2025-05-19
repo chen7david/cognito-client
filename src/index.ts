@@ -4,3 +4,6 @@ export { CognitoAdminClient } from './lib/CognitoAdminClient';
 
 // Export types for consumers to use
 export * from './types';
+
+// Export testing utilities
+export * from './utils/testUtils';

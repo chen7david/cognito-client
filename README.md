@@ -1,4 +1,4 @@
-# Cognito-IO
+# Cognito-Client
 
 A clean, type-safe wrapper around Amazon Cognito providing camel-cased JavaScript structures for easier integration.
 
@@ -10,11 +10,12 @@ A clean, type-safe wrapper around Amazon Cognito providing camel-cased JavaScrip
 - **User Operations**: Full support for user authentication, registration, and profile management.
 - **Admin Operations**: Complete administrative capabilities for user management in Cognito.
 - **Error Handling**: Improved error handling with clear error messages.
+- **Testability**: Designed with testing in mind, allowing for easy mocking and test utilities.
 
 ## Installation
 
 ```bash
-npm install cognito-io
+npm install cognito-client
 ```
 
 ## Usage
@@ -24,14 +25,43 @@ npm install cognito-io
 The `CognitoUserClient` provides methods for regular user operations (sign in, register, etc.) that don't require AWS admin credentials.
 
 ```typescript
-import { CognitoUserClient } from 'cognito-io';
+import { CognitoUserClient, CognitoIdentityProviderClient } from 'cognito-client';
 
-// Create a client
+// Option 1: Create a client using default constructor
 const userClient = new CognitoUserClient({
   region: 'us-east-1',
   userPoolId: 'us-east-1_yourPoolId',
   clientId: 'your-app-client-id',
 });
+
+// Option 2: Create a client with your own CognitoIdentityProviderClient instance
+const cognitoProvider = new CognitoIdentityProviderClient({
+  region: 'us-east-1',
+  // Add any other configuration options here
+});
+
+const userClient = new CognitoUserClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+  },
+  cognitoProvider,
+);
+
+// Option 3: Use the static create method
+const cognitoProvider = CognitoUserClient.createClient({
+  region: 'us-east-1',
+});
+
+const userClient = new CognitoUserClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+  },
+  cognitoProvider,
+);
 
 // Sign in a user
 const signIn = async () => {
@@ -91,9 +121,9 @@ const confirmRegistration = async () => {
 The `CognitoAdminClient` provides methods for admin operations that require AWS credentials.
 
 ```typescript
-import { CognitoAdminClient } from 'cognito-io';
+import { CognitoAdminClient, CognitoIdentityProviderClient } from 'cognito-client';
 
-// Create an admin client
+// Option 1: Create an admin client using default constructor
 const adminClient = new CognitoAdminClient({
   region: 'us-east-1',
   userPoolId: 'us-east-1_yourPoolId',
@@ -103,6 +133,28 @@ const adminClient = new CognitoAdminClient({
     secretAccessKey: 'your-secret-key',
   },
 });
+
+// Option 2: Create an admin client with your own CognitoIdentityProviderClient instance
+const cognitoProvider = new CognitoIdentityProviderClient({
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: 'your-access-key',
+    secretAccessKey: 'your-secret-key',
+  },
+});
+
+const adminClient = new CognitoAdminClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+    credentials: {
+      accessKeyId: 'your-access-key',
+      secretAccessKey: 'your-secret-key',
+    },
+  },
+  cognitoProvider,
+);
 
 // Create a user as admin
 const createUser = async () => {
@@ -201,6 +253,58 @@ try {
   console.log('Error name:', errorInfo.name);
   console.log('Error message:', errorInfo.message);
 }
+```
+
+## Testing
+
+This library provides utility functions to help with testing your application code that uses the Cognito clients:
+
+```typescript
+import {
+  createMockCognitoClient,
+  createMockAuthResult,
+  createMockUser,
+  createMockAdminGetUserResponse,
+} from 'cognito-client';
+
+describe('Your Component', () => {
+  let userClient;
+  let mockSend;
+
+  beforeEach(() => {
+    // Create a mock client for testing
+    const { mockClient, mockSend: send } = createMockCognitoClient();
+    mockSend = send;
+
+    // Pass the mock client to your CognitoUserClient
+    userClient = new CognitoUserClient(
+      {
+        region: 'us-east-1',
+        userPoolId: 'us-east-1_abcdef123',
+        clientId: '1234567890abcdef',
+      },
+      mockClient,
+    );
+  });
+
+  it('should handle sign in', async () => {
+    // Create a mock authentication result
+    const authResult = createMockAuthResult();
+
+    // Mock the response
+    mockSend.mockResolvedValueOnce({
+      AuthenticationResult: authResult,
+    });
+
+    // Test your code
+    const result = await userClient.signIn({
+      username: 'testuser',
+      password: 'password123',
+    });
+
+    // Assertions...
+  });
+});
 ```
 
 ## Development

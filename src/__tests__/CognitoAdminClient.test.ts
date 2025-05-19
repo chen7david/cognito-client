@@ -11,14 +11,12 @@ import {
   AdminInitiateAuthCommand,
   AdminSetUserPasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
+import { createMockCognitoClient } from '../utils/testUtils';
 
 // Mock the AWS SDK
 jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
-  const mockSend = jest.fn();
   return {
-    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
-      send: mockSend,
-    })),
+    CognitoIdentityProviderClient: jest.fn(),
     AdminCreateUserCommand: jest.fn(),
     AdminGetUserCommand: jest.fn(),
     AdminUpdateUserAttributesCommand: jest.fn(),
@@ -50,20 +48,26 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
 describe('CognitoAdminClient', () => {
   let client: CognitoAdminClient;
   let mockSend: jest.Mock;
+  let mockClient: CognitoIdentityProviderClient;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    client = new CognitoAdminClient({
-      region: 'us-east-1',
-      userPoolId: 'us-east-1_abcdef123',
-      clientId: '1234567890abcdef',
-      credentials: {
-        accessKeyId: 'mock-access-key',
-        secretAccessKey: 'mock-secret-key',
+    const { mockClient: mockedClient, mockSend: send } = createMockCognitoClient();
+    mockClient = mockedClient;
+    mockSend = send;
+
+    client = new CognitoAdminClient(
+      {
+        region: 'us-east-1',
+        userPoolId: 'us-east-1_abcdef123',
+        clientId: '1234567890abcdef',
+        credentials: {
+          accessKeyId: 'mock-access-key',
+          secretAccessKey: 'mock-secret-key',
+        },
       },
-    });
-    // Get the mocked send function
-    mockSend = (CognitoIdentityProviderClient as jest.Mock).mock.results[0].value.send;
+      mockClient,
+    );
   });
 
   describe('createUser', () => {

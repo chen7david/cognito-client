@@ -37,6 +37,7 @@ import {
   AdminRespondToAuthChallengeResponse,
   AdminResetUserPasswordParams,
   CognitoErrorInfo,
+  CognitoClientOptions,
 } from '../types';
 
 import {
@@ -57,15 +58,30 @@ export class CognitoAdminClient {
   /**
    * Creates a new instance of CognitoAdminClient
    * @param config - Configuration including AWS credentials
+   * @param client - Optional CognitoIdentityProviderClient instance. If not provided, a new client will be created
    */
-  constructor(config: CognitoAdminConfig) {
+  constructor(config: CognitoAdminConfig, client?: CognitoIdentityProviderClient) {
     this.config = config;
-    this.client = new CognitoIdentityProviderClient({
-      region: config.region,
-      credentials: {
-        accessKeyId: config.credentials.accessKeyId,
-        secretAccessKey: config.credentials.secretAccessKey,
-      },
+    this.client =
+      client ||
+      new CognitoIdentityProviderClient({
+        region: config.region,
+        credentials: {
+          accessKeyId: config.credentials.accessKeyId,
+          secretAccessKey: config.credentials.secretAccessKey,
+        },
+      });
+  }
+
+  /**
+   * Creates a new CognitoIdentityProviderClient
+   * @param options - Client options containing region and optional credentials
+   * @returns A new CognitoIdentityProviderClient instance
+   */
+  static createClient(options: CognitoClientOptions): CognitoIdentityProviderClient {
+    return new CognitoIdentityProviderClient({
+      region: options.region,
+      credentials: options.credentials,
     });
   }
 
