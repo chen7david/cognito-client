@@ -1,0 +1,22 @@
+# Source code
+/src
+
+# Tests
+__tests__
+*.test.ts
+jest.config.js
+
+# Dev configs
+.eslintrc.js
+.prettierrc
+tsconfig.json
+.github
+.husky
+.gitignore
+
+# Misc
+node_modules
+.DS_Store
+*.log
+coverage
+.vscode 
