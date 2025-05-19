@@ -7,26 +7,58 @@ import {
   ConfirmForgotPasswordCommand,
   RespondToAuthChallengeCommand,
   ChangePasswordCommand,
+  GetUserCommand,
+  UpdateUserAttributesCommand,
+  VerifyUserAttributeCommand,
+  GetUserAttributeVerificationCodeCommand,
+  GlobalSignOutCommand,
   AuthFlowType,
   ChallengeNameType,
+  GetDeviceCommand,
+  ForgetDeviceCommand,
+  ListDevicesCommand,
+  AssociateSoftwareTokenCommand,
+  VerifySoftwareTokenCommand,
+  SetUserMFAPreferenceCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import {
   CognitoConfig,
   AuthParams,
   AuthResponse,
-  RegisterUserParams,
-  RegisterUserResponse,
-  ConfirmRegistrationParams,
+  SignUpParams,
+  SignUpResponse,
+  ConfirmSignUpParams,
   ForgotPasswordParams,
-  ResetPasswordParams,
+  ConfirmForgotPasswordParams,
   RefreshTokenParams,
   ChangePasswordParams,
+  GetUserAttributesParams,
+  GetUserAttributesResponse,
+  UpdateUserAttributesParams,
+  VerifyAttributeParams,
+  GetMFAOptionsParams,
+  MFAOption,
+  AssociateSoftwareTokenParams,
+  AssociateSoftwareTokenResponse,
+  VerifySoftwareTokenParams,
+  SetUserMFAPreferenceParams,
+  GetDeviceParams,
+  DeviceType,
+  ForgetDeviceParams,
+  ListDevicesParams,
+  ListDevicesResponse,
+  GlobalSignOutParams,
   CognitoErrorInfo,
   CognitoClientOptions,
 } from '../types';
 
-import { mapAuthResult, mapToAttributeList, formatError } from '../utils/cognitoMapper';
+import {
+  mapAuthResult,
+  mapToAttributeList,
+  mapAttributes,
+  formatError,
+} from '../utils/cognitoMapper';
 
 /**
  * Client for Cognito user operations that don't require admin privileges
@@ -97,7 +129,7 @@ export class CognitoUserClient {
    * @param params - Registration parameters
    * @returns Registration result
    */
-  async registerUser(params: RegisterUserParams): Promise<RegisterUserResponse> {
+  async signUp(params: SignUpParams): Promise<SignUpResponse> {
     try {
       const { username, password, email, phone, attributes = {} } = params;
 
@@ -124,7 +156,7 @@ export class CognitoUserClient {
       };
     } catch (error) {
       const formattedError = formatError(error);
-      throw new Error(`RegisterUser error: ${formattedError.message}`);
+      throw new Error(`SignUp error: ${formattedError.message}`);
     }
   }
 
@@ -133,7 +165,7 @@ export class CognitoUserClient {
    * @param params - Confirmation parameters
    * @returns Success status
    */
-  async confirmRegistration(params: ConfirmRegistrationParams): Promise<boolean> {
+  async confirmSignUp(params: ConfirmSignUpParams): Promise<boolean> {
     try {
       const { username, confirmationCode } = params;
 
@@ -148,7 +180,7 @@ export class CognitoUserClient {
       return true;
     } catch (error) {
       const formattedError = formatError(error);
-      throw new Error(`ConfirmRegistration error: ${formattedError.message}`);
+      throw new Error(`ConfirmSignUp error: ${formattedError.message}`);
     }
   }
 
@@ -180,7 +212,7 @@ export class CognitoUserClient {
    * @param params - Reset parameters with confirmation code and new password
    * @returns Success status
    */
-  async resetPassword(params: ResetPasswordParams): Promise<boolean> {
+  async confirmForgotPassword(params: ConfirmForgotPasswordParams): Promise<boolean> {
     try {
       const { username, confirmationCode, newPassword } = params;
 
@@ -196,7 +228,7 @@ export class CognitoUserClient {
       return true;
     } catch (error) {
       const formattedError = formatError(error);
-      throw new Error(`ResetPassword error: ${formattedError.message}`);
+      throw new Error(`ConfirmForgotPassword error: ${formattedError.message}`);
     }
   }
 
@@ -257,6 +289,343 @@ export class CognitoUserClient {
     } catch (error) {
       const formattedError = formatError(error);
       throw new Error(`ChangePassword error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Gets the current user's attributes
+   * @param params - Parameters with access token
+   * @returns User attributes
+   */
+  async getUserAttributes(params: GetUserAttributesParams): Promise<GetUserAttributesResponse> {
+    try {
+      const { accessToken } = params;
+
+      const response = await this.client.send(
+        new GetUserCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      if (!response.UserAttributes) {
+        throw new Error('Failed to get user attributes: No attributes returned');
+      }
+
+      return {
+        userAttributes: mapAttributes(response.UserAttributes),
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GetUserAttributes error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Updates the current user's attributes
+   * @param params - Parameters with access token and attributes to update
+   * @returns Success status
+   */
+  async updateUserAttributes(params: UpdateUserAttributesParams): Promise<boolean> {
+    try {
+      const { accessToken, attributes } = params;
+
+      await this.client.send(
+        new UpdateUserAttributesCommand({
+          AccessToken: accessToken,
+          UserAttributes: mapToAttributeList(attributes),
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`UpdateUserAttributes error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Sends a verification code to verify a user attribute
+   * @param params - Parameters with access token and attribute name
+   * @returns Success status
+   */
+  async getAttributeVerificationCode(accessToken: string, attributeName: string): Promise<boolean> {
+    try {
+      await this.client.send(
+        new GetUserAttributeVerificationCodeCommand({
+          AccessToken: accessToken,
+          AttributeName: attributeName,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GetAttributeVerificationCode error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Verifies a user attribute with a verification code
+   * @param params - Parameters with access token, attribute name, and verification code
+   * @returns Success status
+   */
+  async verifyUserAttribute(params: VerifyAttributeParams): Promise<boolean> {
+    try {
+      const { accessToken, attributeName, code } = params;
+
+      await this.client.send(
+        new VerifyUserAttributeCommand({
+          AccessToken: accessToken,
+          AttributeName: attributeName,
+          Code: code,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`VerifyUserAttribute error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Gets MFA options for a user
+   * @param params - Parameters with access token
+   * @returns MFA options
+   */
+  async getMFAOptions(params: GetMFAOptionsParams): Promise<MFAOption[]> {
+    try {
+      const { accessToken } = params;
+
+      const response = await this.client.send(
+        new GetUserCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      if (!response.MFAOptions) {
+        return [];
+      }
+
+      return response.MFAOptions.map((option) => ({
+        deliveryMedium: option.DeliveryMedium || '',
+        attributeName: option.AttributeName || '',
+      }));
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GetMFAOptions error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Associates a software token for MFA
+   * @param params - Parameters with access token
+   * @returns Software token secret code
+   */
+  async associateSoftwareToken(
+    params: AssociateSoftwareTokenParams,
+  ): Promise<AssociateSoftwareTokenResponse> {
+    try {
+      const { accessToken } = params;
+
+      const response = await this.client.send(
+        new AssociateSoftwareTokenCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      if (!response.SecretCode) {
+        throw new Error('Failed to associate software token: No secret code returned');
+      }
+
+      return {
+        secretCode: response.SecretCode,
+        session: response.Session,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AssociateSoftwareToken error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Verifies a software token for MFA
+   * @param params - Parameters with access token and user code
+   * @returns Success status
+   */
+  async verifySoftwareToken(params: VerifySoftwareTokenParams): Promise<boolean> {
+    try {
+      const { accessToken, userCode, friendlyDeviceName, session } = params;
+
+      await this.client.send(
+        new VerifySoftwareTokenCommand({
+          AccessToken: accessToken,
+          UserCode: userCode,
+          FriendlyDeviceName: friendlyDeviceName,
+          Session: session,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`VerifySoftwareToken error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Sets MFA preferences for a user
+   * @param params - Parameters with access token and MFA settings
+   * @returns Success status
+   */
+  async setUserMFAPreference(params: SetUserMFAPreferenceParams): Promise<boolean> {
+    try {
+      const { accessToken, smsMfaSettings, softwareTokenMfaSettings } = params;
+
+      await this.client.send(
+        new SetUserMFAPreferenceCommand({
+          AccessToken: accessToken,
+          SMSMfaSettings: smsMfaSettings
+            ? {
+                Enabled: smsMfaSettings.enabled,
+                PreferredMfa: smsMfaSettings.preferred,
+              }
+            : undefined,
+          SoftwareTokenMfaSettings: softwareTokenMfaSettings
+            ? {
+                Enabled: softwareTokenMfaSettings.enabled,
+                PreferredMfa: softwareTokenMfaSettings.preferred,
+              }
+            : undefined,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`SetUserMFAPreference error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Gets information about a device
+   * @param params - Parameters with access token and device key
+   * @returns Device information
+   */
+  async getDevice(params: GetDeviceParams): Promise<DeviceType> {
+    try {
+      const { accessToken, deviceKey } = params;
+
+      const response = await this.client.send(
+        new GetDeviceCommand({
+          AccessToken: accessToken,
+          DeviceKey: deviceKey,
+        }),
+      );
+
+      if (!response.Device) {
+        throw new Error('Failed to get device: No device information returned');
+      }
+
+      const device = response.Device;
+      return {
+        deviceKey: device.DeviceKey || '',
+        deviceAttributes: mapAttributes(device.DeviceAttributes),
+        deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
+        deviceLastModifiedDate: device.DeviceLastModifiedDate
+          ? new Date(device.DeviceLastModifiedDate)
+          : new Date(),
+        deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
+          ? new Date(device.DeviceLastAuthenticatedDate)
+          : undefined,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GetDevice error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Forgets a device
+   * @param params - Parameters with access token and device key
+   * @returns Success status
+   */
+  async forgetDevice(params: ForgetDeviceParams): Promise<boolean> {
+    try {
+      const { accessToken, deviceKey } = params;
+
+      await this.client.send(
+        new ForgetDeviceCommand({
+          AccessToken: accessToken,
+          DeviceKey: deviceKey,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`ForgetDevice error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Lists remembered devices
+   * @param params - Parameters with access token, optional limit and pagination token
+   * @returns List of devices
+   */
+  async listDevices(params: ListDevicesParams): Promise<ListDevicesResponse> {
+    try {
+      const { accessToken, limit, paginationToken } = params;
+
+      const response = await this.client.send(
+        new ListDevicesCommand({
+          AccessToken: accessToken,
+          Limit: limit,
+          PaginationToken: paginationToken,
+        }),
+      );
+
+      const devices = (response.Devices || []).map((device) => ({
+        deviceKey: device.DeviceKey || '',
+        deviceAttributes: mapAttributes(device.DeviceAttributes),
+        deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
+        deviceLastModifiedDate: device.DeviceLastModifiedDate
+          ? new Date(device.DeviceLastModifiedDate)
+          : new Date(),
+        deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
+          ? new Date(device.DeviceLastAuthenticatedDate)
+          : undefined,
+      }));
+
+      return {
+        devices,
+        paginationToken: response.PaginationToken,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`ListDevices error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Signs out from all devices
+   * @param params - Parameters with access token
+   * @returns Success status
+   */
+  async globalSignOut(params: GlobalSignOutParams): Promise<boolean> {
+    try {
+      const { accessToken } = params;
+
+      await this.client.send(
+        new GlobalSignOutCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GlobalSignOut error: ${formattedError.message}`);
     }
   }
 

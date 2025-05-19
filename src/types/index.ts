@@ -39,9 +39,9 @@ export type AuthParams = {
 };
 
 /**
- * Parameters for user registration
+ * Parameters for user sign-up
  */
-export type RegisterUserParams = {
+export type SignUpParams = {
   username: string;
   password: string;
   email: string;
@@ -61,9 +61,9 @@ export type AuthResponse = {
 };
 
 /**
- * Response from user registration
+ * Response from user sign-up
  */
-export type RegisterUserResponse = {
+export type SignUpResponse = {
   userId: string;
   userSub: string;
   userConfirmed: boolean;
@@ -72,7 +72,7 @@ export type RegisterUserResponse = {
 /**
  * Parameters for confirming user registration
  */
-export type ConfirmRegistrationParams = {
+export type ConfirmSignUpParams = {
   username: string;
   confirmationCode: string;
 };
@@ -87,7 +87,7 @@ export type ForgotPasswordParams = {
 /**
  * Parameters for completing a password reset
  */
-export type ResetPasswordParams = {
+export type ConfirmForgotPasswordParams = {
   username: string;
   confirmationCode: string;
   newPassword: string;
@@ -107,6 +107,143 @@ export type ChangePasswordParams = {
   accessToken: string;
   oldPassword: string;
   newPassword: string;
+};
+
+/**
+ * Parameters for getting user attributes
+ */
+export type GetUserAttributesParams = {
+  accessToken: string;
+};
+
+/**
+ * Response for getting user attributes
+ */
+export type GetUserAttributesResponse = {
+  userAttributes: Record<string, string>;
+};
+
+/**
+ * Parameters for updating user attributes
+ */
+export type UpdateUserAttributesParams = {
+  accessToken: string;
+  attributes: Record<string, string>;
+};
+
+/**
+ * Parameters for verifying a user attribute
+ */
+export type VerifyAttributeParams = {
+  accessToken: string;
+  attributeName: string;
+  code: string;
+};
+
+/**
+ * Parameters for getting MFA options
+ */
+export type GetMFAOptionsParams = {
+  accessToken: string;
+};
+
+/**
+ * Response for getting MFA options
+ */
+export type MFAOption = {
+  deliveryMedium: string;
+  attributeName: string;
+};
+
+/**
+ * Parameters for associating a software token for MFA
+ */
+export type AssociateSoftwareTokenParams = {
+  accessToken: string;
+};
+
+/**
+ * Response for associating a software token
+ */
+export type AssociateSoftwareTokenResponse = {
+  secretCode: string;
+  session?: string;
+};
+
+/**
+ * Parameters for verifying a software token
+ */
+export type VerifySoftwareTokenParams = {
+  accessToken: string;
+  userCode: string;
+  friendlyDeviceName?: string;
+  session?: string;
+};
+
+/**
+ * Parameters for setting MFA preferences
+ */
+export type SetUserMFAPreferenceParams = {
+  accessToken: string;
+  smsMfaSettings?: {
+    enabled: boolean;
+    preferred: boolean;
+  };
+  softwareTokenMfaSettings?: {
+    enabled: boolean;
+    preferred: boolean;
+  };
+};
+
+/**
+ * Parameters for getting a device
+ */
+export type GetDeviceParams = {
+  accessToken: string;
+  deviceKey: string;
+};
+
+/**
+ * Device information
+ */
+export type DeviceType = {
+  deviceKey: string;
+  deviceAttributes: Record<string, string>;
+  deviceCreateDate: Date;
+  deviceLastModifiedDate: Date;
+  deviceLastAuthenticatedDate?: Date;
+};
+
+/**
+ * Parameters for forgetting a device
+ */
+export type ForgetDeviceParams = {
+  accessToken: string;
+  deviceKey: string;
+};
+
+/**
+ * Parameters for listing devices
+ */
+export type ListDevicesParams = {
+  accessToken: string;
+  limit?: number;
+  paginationToken?: string;
+};
+
+/**
+ * Response for listing devices
+ */
+export type ListDevicesResponse = {
+  devices: DeviceType[];
+  paginationToken?: string;
+};
+
+/**
+ * Parameters for global sign out
+ */
+export type GlobalSignOutParams = {
+  accessToken: string;
 };
 
 /**
@@ -133,6 +270,13 @@ export type AdminCreateUserResponse = {
   enabled: boolean;
   userStatus: string;
   temporaryPassword?: string;
+};
+
+/**
+ * Parameters for admin confirming sign up
+ */
+export type AdminConfirmSignUpParams = {
+  username: string;
 };
 
 /**
@@ -258,6 +402,176 @@ export type AdminRespondToAuthChallengeResponse = {
   session?: string;
   challengeParameters?: Record<string, string>;
   authenticationResult?: AuthResponse;
+};
+
+/**
+ * Parameters for adding user to group
+ */
+export type AdminAddUserToGroupParams = {
+  username: string;
+  groupName: string;
+};
+
+/**
+ * Parameters for removing user from group
+ */
+export type AdminRemoveUserFromGroupParams = {
+  username: string;
+  groupName: string;
+};
+
+/**
+ * Parameters for listing groups
+ */
+export type ListGroupsParams = {
+  limit?: number;
+  nextToken?: string;
+};
+
+/**
+ * Group information
+ */
+export type GroupType = {
+  groupName: string;
+  description?: string;
+  userPoolId: string;
+  precedence?: number;
+  roleArn?: string;
+  lastModifiedDate?: Date;
+  creationDate?: Date;
+};
+
+/**
+ * Response for listing groups
+ */
+export type ListGroupsResponse = {
+  groups: GroupType[];
+  nextToken?: string;
+};
+
+/**
+ * Parameters for creating a group
+ */
+export type CreateGroupParams = {
+  groupName: string;
+  description?: string;
+  precedence?: number;
+  roleArn?: string;
+};
+
+/**
+ * Parameters for getting a group
+ */
+export type GetGroupParams = {
+  groupName: string;
+};
+
+/**
+ * Parameters for updating a group
+ */
+export type UpdateGroupParams = {
+  groupName: string;
+  description?: string;
+  precedence?: number;
+  roleArn?: string;
+};
+
+/**
+ * Parameters for deleting a group
+ */
+export type DeleteGroupParams = {
+  groupName: string;
+};
+
+/**
+ * Parameters for listing users in a group
+ */
+export type ListUsersInGroupParams = {
+  groupName: string;
+  limit?: number;
+  nextToken?: string;
+};
+
+/**
+ * Response for listing users in a group
+ */
+export type ListUsersInGroupResponse = {
+  users: AdminGetUserResponse[];
+  nextToken?: string;
+};
+
+/**
+ * Parameters for listing groups for a user
+ */
+export type AdminListGroupsForUserParams = {
+  username: string;
+  limit?: number;
+  nextToken?: string;
+};
+
+/**
+ * Response for listing groups for a user
+ */
+export type AdminListGroupsForUserResponse = {
+  groups: GroupType[];
+  nextToken?: string;
+};
+
+/**
+ * Parameters for setting MFA preferences
+ */
+export type AdminSetUserMFAPreferenceParams = {
+  username: string;
+  smsMfaSettings?: {
+    enabled: boolean;
+    preferred: boolean;
+  };
+  softwareTokenMfaSettings?: {
+    enabled: boolean;
+    preferred: boolean;
+  };
+};
+
+/**
+ * Parameters for admin getting a device
+ */
+export type AdminGetDeviceParams = {
+  username: string;
+  deviceKey: string;
+};
+
+/**
+ * Parameters for admin forgetting a device
+ */
+export type AdminForgetDeviceParams = {
+  username: string;
+  deviceKey: string;
+};
+
+/**
+ * Parameters for admin listing devices
+ */
+export type AdminListDevicesParams = {
+  username: string;
+  limit?: number;
+  paginationToken?: string;
+};
+
+/**
+ * Parameters for admin user global sign out
+ */
+export type AdminUserGlobalSignOutParams = {
+  username: string;
+};
+
+/**
+ * Parameters for linking provider for user
+ */
+export type AdminLinkProviderForUserParams = {
+  username: string;
+  providerName: string;
+  providerAttributeName: string;
+  providerAttributeValue: string;
 };
 
 /**

@@ -11,6 +11,22 @@ import {
   AdminRespondToAuthChallengeCommand,
   AdminSetUserPasswordCommand,
   AdminResetUserPasswordCommand,
+  AdminConfirmSignUpCommand,
+  AdminAddUserToGroupCommand,
+  AdminRemoveUserFromGroupCommand,
+  ListGroupsCommand,
+  CreateGroupCommand,
+  DeleteGroupCommand,
+  GetGroupCommand,
+  UpdateGroupCommand,
+  ListUsersInGroupCommand,
+  AdminSetUserMFAPreferenceCommand,
+  AdminLinkProviderForUserCommand,
+  AdminGetDeviceCommand,
+  AdminForgetDeviceCommand,
+  AdminListDevicesCommand,
+  AdminListGroupsForUserCommand,
+  AdminUserGlobalSignOutCommand,
   AuthFlowType,
   ChallengeNameType,
   MessageActionType,
@@ -36,8 +52,30 @@ import {
   AdminRespondToAuthChallengeParams,
   AdminRespondToAuthChallengeResponse,
   AdminResetUserPasswordParams,
+  AdminConfirmSignUpParams,
+  AdminAddUserToGroupParams,
+  AdminRemoveUserFromGroupParams,
+  ListGroupsParams,
+  ListGroupsResponse,
+  CreateGroupParams,
+  DeleteGroupParams,
+  GetGroupParams,
+  UpdateGroupParams,
+  ListUsersInGroupParams,
+  ListUsersInGroupResponse,
+  AdminListGroupsForUserParams,
+  AdminListGroupsForUserResponse,
+  AdminSetUserMFAPreferenceParams,
+  AdminGetDeviceParams,
+  AdminForgetDeviceParams,
+  AdminListDevicesParams,
+  AdminUserGlobalSignOutParams,
+  AdminLinkProviderForUserParams,
   CognitoErrorInfo,
   CognitoClientOptions,
+  GroupType,
+  DeviceType,
+  ListDevicesResponse,
 } from '../types';
 
 import {
@@ -46,6 +84,7 @@ import {
   mapAdminGetUserResponse,
   mapAuthResult,
   formatError,
+  mapAttributes,
 } from '../utils/cognitoMapper';
 
 /**
@@ -436,5 +475,526 @@ export class CognitoAdminClient {
    */
   getErrorInfo(error: unknown): CognitoErrorInfo {
     return formatError(error);
+  }
+
+  /**
+   * Confirms a user's registration as an admin
+   * @param params - Parameters with username
+   * @returns Success status
+   */
+  async adminConfirmSignUp(params: AdminConfirmSignUpParams): Promise<boolean> {
+    try {
+      const { username } = params;
+
+      await this.client.send(
+        new AdminConfirmSignUpCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminConfirmSignUp error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Adds a user to a group
+   * @param params - Parameters with username and group name
+   * @returns Success status
+   */
+  async adminAddUserToGroup(params: AdminAddUserToGroupParams): Promise<boolean> {
+    try {
+      const { username, groupName } = params;
+
+      await this.client.send(
+        new AdminAddUserToGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          GroupName: groupName,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminAddUserToGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Removes a user from a group
+   * @param params - Parameters with username and group name
+   * @returns Success status
+   */
+  async adminRemoveUserFromGroup(params: AdminRemoveUserFromGroupParams): Promise<boolean> {
+    try {
+      const { username, groupName } = params;
+
+      await this.client.send(
+        new AdminRemoveUserFromGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          GroupName: groupName,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminRemoveUserFromGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Lists groups in the user pool
+   * @param params - Parameters with optional limit and pagination token
+   * @returns List of groups and pagination token
+   */
+  async listGroups(params: ListGroupsParams = {}): Promise<ListGroupsResponse> {
+    try {
+      const { limit, nextToken } = params;
+
+      const response = await this.client.send(
+        new ListGroupsCommand({
+          UserPoolId: this.config.userPoolId,
+          Limit: limit,
+          NextToken: nextToken,
+        }),
+      );
+
+      const groups = (response.Groups || []).map((group) => ({
+        groupName: group.GroupName || '',
+        description: group.Description,
+        userPoolId: group.UserPoolId || '',
+        precedence: group.Precedence,
+        roleArn: group.RoleArn,
+        lastModifiedDate: group.LastModifiedDate ? new Date(group.LastModifiedDate) : undefined,
+        creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
+      }));
+
+      return {
+        groups,
+        nextToken: response.NextToken,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`ListGroups error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Creates a new group in the user pool
+   * @param params - Parameters with group name and optional description, precedence, and role ARN
+   * @returns The created group
+   */
+  async createGroup(params: CreateGroupParams): Promise<GroupType> {
+    try {
+      const { groupName, description, precedence, roleArn } = params;
+
+      const response = await this.client.send(
+        new CreateGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          GroupName: groupName,
+          Description: description,
+          Precedence: precedence,
+          RoleArn: roleArn,
+        }),
+      );
+
+      if (!response.Group) {
+        throw new Error('Failed to create group: No group information returned');
+      }
+
+      const group = response.Group;
+      return {
+        groupName: group.GroupName || '',
+        description: group.Description,
+        userPoolId: group.UserPoolId || '',
+        precedence: group.Precedence,
+        roleArn: group.RoleArn,
+        lastModifiedDate: group.LastModifiedDate ? new Date(group.LastModifiedDate) : undefined,
+        creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`CreateGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Gets information about a group
+   * @param params - Parameters with group name
+   * @returns Group information
+   */
+  async getGroup(params: GetGroupParams): Promise<GroupType> {
+    try {
+      const { groupName } = params;
+
+      const response = await this.client.send(
+        new GetGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          GroupName: groupName,
+        }),
+      );
+
+      if (!response.Group) {
+        throw new Error('Failed to get group: No group information returned');
+      }
+
+      const group = response.Group;
+      return {
+        groupName: group.GroupName || '',
+        description: group.Description,
+        userPoolId: group.UserPoolId || '',
+        precedence: group.Precedence,
+        roleArn: group.RoleArn,
+        lastModifiedDate: group.LastModifiedDate ? new Date(group.LastModifiedDate) : undefined,
+        creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GetGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Updates a group in the user pool
+   * @param params - Parameters with group name and optional description, precedence, and role ARN
+   * @returns The updated group
+   */
+  async updateGroup(params: UpdateGroupParams): Promise<GroupType> {
+    try {
+      const { groupName, description, precedence, roleArn } = params;
+
+      const response = await this.client.send(
+        new UpdateGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          GroupName: groupName,
+          Description: description,
+          Precedence: precedence,
+          RoleArn: roleArn,
+        }),
+      );
+
+      if (!response.Group) {
+        throw new Error('Failed to update group: No group information returned');
+      }
+
+      const group = response.Group;
+      return {
+        groupName: group.GroupName || '',
+        description: group.Description,
+        userPoolId: group.UserPoolId || '',
+        precedence: group.Precedence,
+        roleArn: group.RoleArn,
+        lastModifiedDate: group.LastModifiedDate ? new Date(group.LastModifiedDate) : undefined,
+        creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`UpdateGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Deletes a group from the user pool
+   * @param params - Parameters with group name
+   * @returns Success status
+   */
+  async deleteGroup(params: DeleteGroupParams): Promise<boolean> {
+    try {
+      const { groupName } = params;
+
+      await this.client.send(
+        new DeleteGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          GroupName: groupName,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`DeleteGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Lists users in a specific group
+   * @param params - Parameters with group name, optional limit and pagination token
+   * @returns List of users and pagination token
+   */
+  async listUsersInGroup(params: ListUsersInGroupParams): Promise<ListUsersInGroupResponse> {
+    try {
+      const { groupName, limit, nextToken } = params;
+
+      const response = await this.client.send(
+        new ListUsersInGroupCommand({
+          UserPoolId: this.config.userPoolId,
+          GroupName: groupName,
+          Limit: limit,
+          NextToken: nextToken,
+        }),
+      );
+
+      const users = (response.Users || []).map((user: UserType) => {
+        return mapAdminGetUserResponse({
+          Username: user.Username,
+          UserAttributes: user.Attributes,
+          UserCreateDate: user.UserCreateDate,
+          UserLastModifiedDate: user.UserLastModifiedDate,
+          Enabled: user.Enabled,
+          UserStatus: user.UserStatus,
+          MFAOptions: user.MFAOptions?.map((opt: MFAOptionType) => ({
+            DeliveryMedium: opt.DeliveryMedium as DeliveryMediumType,
+            AttributeName: opt.AttributeName,
+          })),
+        });
+      });
+
+      return {
+        users,
+        nextToken: response.NextToken,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`ListUsersInGroup error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Lists the groups that a user belongs to
+   * @param params - Parameters with username, optional limit and pagination token
+   * @returns List of groups and pagination token
+   */
+  async adminListGroupsForUser(
+    params: AdminListGroupsForUserParams,
+  ): Promise<AdminListGroupsForUserResponse> {
+    try {
+      const { username, limit, nextToken } = params;
+
+      const response = await this.client.send(
+        new AdminListGroupsForUserCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          Limit: limit,
+          NextToken: nextToken,
+        }),
+      );
+
+      const groups = (response.Groups || []).map((group) => ({
+        groupName: group.GroupName || '',
+        description: group.Description,
+        userPoolId: group.UserPoolId || '',
+        precedence: group.Precedence,
+        roleArn: group.RoleArn,
+        lastModifiedDate: group.LastModifiedDate ? new Date(group.LastModifiedDate) : undefined,
+        creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
+      }));
+
+      return {
+        groups,
+        nextToken: response.NextToken,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminListGroupsForUser error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Sets MFA preferences for a user
+   * @param params - Parameters with username and MFA settings
+   * @returns Success status
+   */
+  async adminSetUserMFAPreference(params: AdminSetUserMFAPreferenceParams): Promise<boolean> {
+    try {
+      const { username, smsMfaSettings, softwareTokenMfaSettings } = params;
+
+      await this.client.send(
+        new AdminSetUserMFAPreferenceCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          SMSMfaSettings: smsMfaSettings
+            ? {
+                Enabled: smsMfaSettings.enabled,
+                PreferredMfa: smsMfaSettings.preferred,
+              }
+            : undefined,
+          SoftwareTokenMfaSettings: softwareTokenMfaSettings
+            ? {
+                Enabled: softwareTokenMfaSettings.enabled,
+                PreferredMfa: softwareTokenMfaSettings.preferred,
+              }
+            : undefined,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminSetUserMFAPreference error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Links a user to a third-party identity provider
+   * @param params - Parameters with username, provider name, attribute name, and attribute value
+   * @returns Success status
+   */
+  async adminLinkProviderForUser(params: AdminLinkProviderForUserParams): Promise<boolean> {
+    try {
+      const { username, providerName, providerAttributeName, providerAttributeValue } = params;
+
+      await this.client.send(
+        new AdminLinkProviderForUserCommand({
+          UserPoolId: this.config.userPoolId,
+          DestinationUser: {
+            ProviderName: 'Cognito',
+            ProviderAttributeName: 'Username',
+            ProviderAttributeValue: username,
+          },
+          SourceUser: {
+            ProviderName: providerName,
+            ProviderAttributeName: providerAttributeName,
+            ProviderAttributeValue: providerAttributeValue,
+          },
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminLinkProviderForUser error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Gets information about a user's device
+   * @param params - Parameters with username and device key
+   * @returns Device information
+   */
+  async adminGetDevice(params: AdminGetDeviceParams): Promise<DeviceType> {
+    try {
+      const { username, deviceKey } = params;
+
+      const response = await this.client.send(
+        new AdminGetDeviceCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          DeviceKey: deviceKey,
+        }),
+      );
+
+      if (!response.Device) {
+        throw new Error('Failed to get device: No device information returned');
+      }
+
+      const device = response.Device;
+      return {
+        deviceKey: device.DeviceKey || '',
+        deviceAttributes: mapAttributes(device.DeviceAttributes),
+        deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
+        deviceLastModifiedDate: device.DeviceLastModifiedDate
+          ? new Date(device.DeviceLastModifiedDate)
+          : new Date(),
+        deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
+          ? new Date(device.DeviceLastAuthenticatedDate)
+          : undefined,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminGetDevice error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Forgets a user's device
+   * @param params - Parameters with username and device key
+   * @returns Success status
+   */
+  async adminForgetDevice(params: AdminForgetDeviceParams): Promise<boolean> {
+    try {
+      const { username, deviceKey } = params;
+
+      await this.client.send(
+        new AdminForgetDeviceCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          DeviceKey: deviceKey,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminForgetDevice error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Lists a user's devices
+   * @param params - Parameters with username, optional limit and pagination token
+   * @returns List of devices
+   */
+  async adminListDevices(params: AdminListDevicesParams): Promise<ListDevicesResponse> {
+    try {
+      const { username, limit, paginationToken } = params;
+
+      const response = await this.client.send(
+        new AdminListDevicesCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+          Limit: limit,
+          PaginationToken: paginationToken,
+        }),
+      );
+
+      const devices = (response.Devices || []).map((device) => ({
+        deviceKey: device.DeviceKey || '',
+        deviceAttributes: mapAttributes(device.DeviceAttributes),
+        deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
+        deviceLastModifiedDate: device.DeviceLastModifiedDate
+          ? new Date(device.DeviceLastModifiedDate)
+          : new Date(),
+        deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
+          ? new Date(device.DeviceLastAuthenticatedDate)
+          : undefined,
+      }));
+
+      return {
+        devices,
+        paginationToken: response.PaginationToken,
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminListDevices error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Signs out a user from all devices
+   * @param params - Parameters with username
+   * @returns Success status
+   */
+  async adminUserGlobalSignOut(params: AdminUserGlobalSignOutParams): Promise<boolean> {
+    try {
+      const { username } = params;
+
+      await this.client.send(
+        new AdminUserGlobalSignOutCommand({
+          UserPoolId: this.config.userPoolId,
+          Username: username,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`AdminUserGlobalSignOut error: ${formattedError.message}`);
+    }
   }
 }

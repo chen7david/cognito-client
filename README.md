@@ -37,13 +37,22 @@ npm install cognito-client
 
 ```typescript
 // User client
-import { CognitoUserClient } from 'cognito-client';
+import { CognitoUserClient, CognitoIdentityProviderClient } from 'cognito-client';
 
-const userClient = new CognitoUserClient({
+// Create the AWS SDK client
+const cognitoProvider = new CognitoIdentityProviderClient({
   region: 'us-east-1',
-  userPoolId: 'us-east-1_yourPoolId',
-  clientId: 'your-app-client-id',
 });
+
+// Create the user client
+const userClient = new CognitoUserClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+  },
+  cognitoProvider,
+);
 
 // Sign in a user
 const authResult = await userClient.signIn({
@@ -52,17 +61,30 @@ const authResult = await userClient.signIn({
 });
 
 // Admin client
-import { CognitoAdminClient } from 'cognito-client';
+import { CognitoAdminClient, CognitoIdentityProviderClient } from 'cognito-client';
 
-const adminClient = new CognitoAdminClient({
+// Create the AWS SDK client with credentials
+const cognitoProviderWithCreds = new CognitoIdentityProviderClient({
   region: 'us-east-1',
-  userPoolId: 'us-east-1_yourPoolId',
-  clientId: 'your-app-client-id',
   credentials: {
     accessKeyId: 'your-access-key',
     secretAccessKey: 'your-secret-key',
   },
 });
+
+// Create the admin client
+const adminClient = new CognitoAdminClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+    credentials: {
+      accessKeyId: 'your-access-key',
+      secretAccessKey: 'your-secret-key',
+    },
+  },
+  cognitoProviderWithCreds,
+);
 
 // Create a user as admin
 const result = await adminClient.createUser({
@@ -81,18 +103,27 @@ The `CognitoUserClient` provides methods for regular user operations that don't 
 ```typescript
 import { CognitoUserClient, CognitoIdentityProviderClient } from 'cognito-client';
 
-// Option 1: Default constructor
-const userClient = new CognitoUserClient({
-  region: 'us-east-1',
-  userPoolId: 'us-east-1_yourPoolId',
-  clientId: 'your-app-client-id',
-});
-
-// Option 2: With your own CognitoIdentityProviderClient instance
+// First, create a CognitoIdentityProviderClient instance
 const cognitoProvider = new CognitoIdentityProviderClient({
   region: 'us-east-1',
 });
 
+// Then, create the CognitoUserClient with the provider instance
+const userClient = new CognitoUserClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+  },
+  cognitoProvider,
+);
+
+// Alternatively, you can use the static createClient method to create the provider
+const cognitoProvider = CognitoUserClient.createClient({
+  region: 'us-east-1',
+});
+
+// Then create the client with the provider
 const userClient = new CognitoUserClient(
   {
     region: 'us-east-1',
@@ -126,7 +157,7 @@ try {
 ```typescript
 // Register a new user
 try {
-  const result = await userClient.registerUser({
+  const result = await userClient.signUp({
     username: 'newuser',
     password: 'Password123!',
     email: 'user@example.com',
@@ -144,7 +175,7 @@ try {
 
 // Confirm registration
 try {
-  const success = await userClient.confirmRegistration({
+  const success = await userClient.confirmSignUp({
     username: 'newuser',
     confirmationCode: '123456',
   });
@@ -166,18 +197,7 @@ The `CognitoAdminClient` provides methods for admin operations that require AWS 
 ```typescript
 import { CognitoAdminClient, CognitoIdentityProviderClient } from 'cognito-client';
 
-// Option 1: Default constructor
-const adminClient = new CognitoAdminClient({
-  region: 'us-east-1',
-  userPoolId: 'us-east-1_yourPoolId',
-  clientId: 'your-app-client-id',
-  credentials: {
-    accessKeyId: 'your-access-key',
-    secretAccessKey: 'your-secret-key',
-  },
-});
-
-// Option 2: With your own CognitoIdentityProviderClient instance
+// First, create a CognitoIdentityProviderClient instance with credentials
 const cognitoProvider = new CognitoIdentityProviderClient({
   region: 'us-east-1',
   credentials: {
@@ -186,6 +206,30 @@ const cognitoProvider = new CognitoIdentityProviderClient({
   },
 });
 
+// Then, create the CognitoAdminClient with the provider instance
+const adminClient = new CognitoAdminClient(
+  {
+    region: 'us-east-1',
+    userPoolId: 'us-east-1_yourPoolId',
+    clientId: 'your-app-client-id',
+    credentials: {
+      accessKeyId: 'your-access-key',
+      secretAccessKey: 'your-secret-key',
+    },
+  },
+  cognitoProvider,
+);
+
+// Alternatively, you can use the static createClient method to create the provider
+const cognitoProvider = CognitoAdminClient.createClient({
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: 'your-access-key',
+    secretAccessKey: 'your-secret-key',
+  },
+});
+
+// Then create the client with the provider
 const adminClient = new CognitoAdminClient(
   {
     region: 'us-east-1',
@@ -333,19 +377,31 @@ describe('Your Component', () => {
 
 ### User Client Methods
 
-| Method                          | Description                                     | Parameters                                                                                                           | Return Type                    |
-| ------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `constructor`                   | Creates a new instance of `CognitoUserClient`   | `config`: CognitoConfig<br>`client?`: CognitoIdentityProviderClient                                                  | -                              |
-| `static createClient`           | Creates a new CognitoIdentityProviderClient     | `options`: CognitoClientOptions                                                                                      | CognitoIdentityProviderClient  |
-| `signIn`                        | Authenticates a user with username and password | `params`: { username: string, password: string }                                                                     | Promise\<AuthResponse>         |
-| `registerUser`                  | Registers a new user in Cognito                 | `params`: { username: string, password: string, email: string, phone?: string, attributes?: Record<string, string> } | Promise\<RegisterUserResponse> |
-| `confirmRegistration`           | Confirms a user registration                    | `params`: { username: string, confirmationCode: string }                                                             | Promise\<boolean>              |
-| `forgotPassword`                | Initiates the forgot password flow              | `params`: { username: string }                                                                                       | Promise\<boolean>              |
-| `resetPassword`                 | Completes the password reset process            | `params`: { username: string, confirmationCode: string, newPassword: string }                                        | Promise\<boolean>              |
-| `refreshToken`                  | Refreshes the authentication tokens             | `params`: { refreshToken: string }                                                                                   | Promise\<AuthResponse>         |
-| `changePassword`                | Changes the user's password                     | `params`: { accessToken: string, oldPassword: string, newPassword: string }                                          | Promise\<boolean>              |
-| `respondToNewPasswordChallenge` | Responds to a new password required challenge   | `challengeName`: string<br>`username`: string<br>`newPassword`: string<br>`session`: string                          | Promise\<AuthResponse>         |
-| `getErrorInfo`                  | Gets formatted error information                | `error`: unknown                                                                                                     | CognitoErrorInfo               |
+| Method                          | Description                                     | Parameters                                                                                                           | Return Type                              |
+| ------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `constructor`                   | Creates a new instance of `CognitoUserClient`   | `config`: CognitoConfig<br>`client`: CognitoIdentityProviderClient                                                   | -                                        |
+| `static createClient`           | Creates a new CognitoIdentityProviderClient     | `options`: CognitoClientOptions                                                                                      | CognitoIdentityProviderClient            |
+| `signIn`                        | Authenticates a user with username and password | `params`: { username: string, password: string }                                                                     | Promise\<AuthResponse>                   |
+| `signUp`                        | Registers a new user in Cognito                 | `params`: { username: string, password: string, email: string, phone?: string, attributes?: Record<string, string> } | Promise\<SignUpResponse>                 |
+| `confirmSignUp`                 | Confirms a user registration                    | `params`: { username: string, confirmationCode: string }                                                             | Promise\<boolean>                        |
+| `forgotPassword`                | Initiates the forgot password flow              | `params`: { username: string }                                                                                       | Promise\<boolean>                        |
+| `confirmForgotPassword`         | Completes the password reset process            | `params`: { username: string, confirmationCode: string, newPassword: string }                                        | Promise\<boolean>                        |
+| `refreshToken`                  | Refreshes the authentication tokens             | `params`: { refreshToken: string }                                                                                   | Promise\<AuthResponse>                   |
+| `changePassword`                | Changes the user's password                     | `params`: { accessToken: string, oldPassword: string, newPassword: string }                                          | Promise\<boolean>                        |
+| `getUserAttributes`             | Gets the current user's attributes              | `params`: { accessToken: string }                                                                                    | Promise\<GetUserAttributesResponse>      |
+| `updateUserAttributes`          | Updates the current user's attributes           | `params`: { accessToken: string, attributes: Record<string, string> }                                                | Promise\<boolean>                        |
+| `getAttributeVerificationCode`  | Sends a verification code for an attribute      | `accessToken`: string<br>`attributeName`: string                                                                     | Promise\<boolean>                        |
+| `verifyUserAttribute`           | Verifies a user attribute with a code           | `params`: { accessToken: string, attributeName: string, code: string }                                               | Promise\<boolean>                        |
+| `getMFAOptions`                 | Gets MFA options for a user                     | `params`: { accessToken: string }                                                                                    | Promise\<MFAOption[]>                    |
+| `associateSoftwareToken`        | Associates a software token for MFA             | `params`: { accessToken: string }                                                                                    | Promise\<AssociateSoftwareTokenResponse> |
+| `verifySoftwareToken`           | Verifies a software token for MFA               | `params`: { accessToken: string, userCode: string, friendlyDeviceName?: string, session?: string }                   | Promise\<boolean>                        |
+| `setUserMFAPreference`          | Sets MFA preferences for a user                 | `params`: { accessToken: string, smsMfaSettings?: {...}, softwareTokenMfaSettings?: {...} }                          | Promise\<boolean>                        |
+| `getDevice`                     | Gets information about a device                 | `params`: { accessToken: string, deviceKey: string }                                                                 | Promise\<DeviceType>                     |
+| `forgetDevice`                  | Forgets a device                                | `params`: { accessToken: string, deviceKey: string }                                                                 | Promise\<boolean>                        |
+| `listDevices`                   | Lists remembered devices                        | `params`: { accessToken: string, limit?: number, paginationToken?: string }                                          | Promise\<ListDevicesResponse>            |
+| `globalSignOut`                 | Signs out from all devices                      | `params`: { accessToken: string }                                                                                    | Promise\<boolean>                        |
+| `respondToNewPasswordChallenge` | Responds to a new password required challenge   | `challengeName`: string<br>`username`: string<br>`newPassword`: string<br>`session`: string                          | Promise\<AuthResponse>                   |
+| `getErrorInfo`                  | Gets formatted error information                | `error`: unknown                                                                                                     | CognitoErrorInfo                         |
 
 ### Common Return Types
 
@@ -359,7 +415,7 @@ describe('Your Component', () => {
 | `expiresIn`    | number | Token expiration time in seconds            |
 | `tokenType`    | string | The token type (e.g., "Bearer")             |
 
-#### RegisterUserResponse
+#### SignUpResponse
 
 | Property        | Type    | Description                                         |
 | --------------- | ------- | --------------------------------------------------- |
@@ -369,22 +425,38 @@ describe('Your Component', () => {
 
 ### Admin Client Methods
 
-| Method                   | Description                                    | Parameters                                                                                | Return Type                                   |
-| ------------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `constructor`            | Creates a new instance of `CognitoAdminClient` | `config`: CognitoAdminConfig<br>`client?`: CognitoIdentityProviderClient                  | -                                             |
-| `static createClient`    | Creates a new CognitoIdentityProviderClient    | `options`: CognitoClientOptions                                                           | CognitoIdentityProviderClient                 |
-| `createUser`             | Creates a new user as an admin                 | `params`: AdminCreateUserParams                                                           | Promise\<AdminCreateUserResponse>             |
-| `getUser`                | Gets user information as an admin              | `params`: { username: string }                                                            | Promise\<AdminGetUserResponse>                |
-| `updateUserAttributes`   | Updates user attributes as an admin            | `params`: { username: string, attributes: Record<string, string> }                        | Promise\<boolean>                             |
-| `disableUser`            | Disables a user as an admin                    | `params`: { username: string }                                                            | Promise\<boolean>                             |
-| `enableUser`             | Enables a user as an admin                     | `params`: { username: string }                                                            | Promise\<boolean>                             |
-| `deleteUser`             | Deletes a user as an admin                     | `params`: { username: string }                                                            | Promise\<boolean>                             |
-| `listUsers`              | Lists users in the user pool as an admin       | `params?`: { limit?: number, paginationToken?: string, filter?: string }                  | Promise\<AdminListUsersResponse>              |
-| `initiateAuth`           | Initiates authentication as an admin           | `params`: { username: string, password: string, clientMetadata?: Record<string, string> } | Promise\<AdminInitiateAuthResponse>           |
-| `respondToAuthChallenge` | Responds to an auth challenge as an admin      | `params`: AdminRespondToAuthChallengeParams                                               | Promise\<AdminRespondToAuthChallengeResponse> |
-| `resetUserPassword`      | Resets a user's password as an admin           | `params`: { username: string }                                                            | Promise\<boolean>                             |
-| `setUserPassword`        | Sets a user's password as an admin             | `username`: string<br>`password`: string<br>`permanent?`: boolean (default: true)         | Promise\<boolean>                             |
-| `getErrorInfo`           | Gets formatted error information               | `error`: unknown                                                                          | CognitoErrorInfo                              |
+| Method                      | Description                                     | Parameters                                                                                                          | Return Type                                   |
+| --------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `constructor`               | Creates a new instance of `CognitoAdminClient`  | `config`: CognitoAdminConfig<br>`client`: CognitoIdentityProviderClient                                             | -                                             |
+| `static createClient`       | Creates a new CognitoIdentityProviderClient     | `options`: CognitoClientOptions                                                                                     | CognitoIdentityProviderClient                 |
+| `createUser`                | Creates a new user as an admin                  | `params`: AdminCreateUserParams                                                                                     | Promise\<AdminCreateUserResponse>             |
+| `getUser`                   | Gets user information as an admin               | `params`: { username: string }                                                                                      | Promise\<AdminGetUserResponse>                |
+| `updateUserAttributes`      | Updates user attributes as an admin             | `params`: { username: string, attributes: Record<string, string> }                                                  | Promise\<boolean>                             |
+| `disableUser`               | Disables a user as an admin                     | `params`: { username: string }                                                                                      | Promise\<boolean>                             |
+| `enableUser`                | Enables a user as an admin                      | `params`: { username: string }                                                                                      | Promise\<boolean>                             |
+| `deleteUser`                | Deletes a user as an admin                      | `params`: { username: string }                                                                                      | Promise\<boolean>                             |
+| `listUsers`                 | Lists users in the user pool as an admin        | `params?`: { limit?: number, paginationToken?: string, filter?: string }                                            | Promise\<AdminListUsersResponse>              |
+| `initiateAuth`              | Initiates authentication as an admin            | `params`: { username: string, password: string, clientMetadata?: Record<string, string> }                           | Promise\<AdminInitiateAuthResponse>           |
+| `respondToAuthChallenge`    | Responds to an auth challenge as an admin       | `params`: AdminRespondToAuthChallengeParams                                                                         | Promise\<AdminRespondToAuthChallengeResponse> |
+| `resetUserPassword`         | Resets a user's password as an admin            | `params`: { username: string }                                                                                      | Promise\<boolean>                             |
+| `setUserPassword`           | Sets a user's password as an admin              | `username`: string<br>`password`: string<br>`permanent?`: boolean (default: true)                                   | Promise\<boolean>                             |
+| `adminConfirmSignUp`        | Confirms a user's registration as an admin      | `params`: { username: string }                                                                                      | Promise\<boolean>                             |
+| `adminAddUserToGroup`       | Adds a user to a group                          | `params`: { username: string, groupName: string }                                                                   | Promise\<boolean>                             |
+| `adminRemoveUserFromGroup`  | Removes a user from a group                     | `params`: { username: string, groupName: string }                                                                   | Promise\<boolean>                             |
+| `listGroups`                | Lists groups in the user pool                   | `params?`: { limit?: number, nextToken?: string }                                                                   | Promise\<ListGroupsResponse>                  |
+| `createGroup`               | Creates a new group in the user pool            | `params`: { groupName: string, description?: string, precedence?: number, roleArn?: string }                        | Promise\<GroupType>                           |
+| `getGroup`                  | Gets information about a group                  | `params`: { groupName: string }                                                                                     | Promise\<GroupType>                           |
+| `updateGroup`               | Updates a group in the user pool                | `params`: { groupName: string, description?: string, precedence?: number, roleArn?: string }                        | Promise\<GroupType>                           |
+| `deleteGroup`               | Deletes a group from the user pool              | `params`: { groupName: string }                                                                                     | Promise\<boolean>                             |
+| `listUsersInGroup`          | Lists users in a specific group                 | `params`: { groupName: string, limit?: number, nextToken?: string }                                                 | Promise\<ListUsersInGroupResponse>            |
+| `adminListGroupsForUser`    | Lists groups that a user belongs to             | `params`: { username: string, limit?: number, nextToken?: string }                                                  | Promise\<AdminListGroupsForUserResponse>      |
+| `adminSetUserMFAPreference` | Sets MFA preferences for a user                 | `params`: { username: string, smsMfaSettings?: {...}, softwareTokenMfaSettings?: {...} }                            | Promise\<boolean>                             |
+| `adminLinkProviderForUser`  | Links a user to a third-party identity provider | `params`: { username: string, providerName: string, providerAttributeName: string, providerAttributeValue: string } | Promise\<boolean>                             |
+| `adminGetDevice`            | Gets information about a user's device          | `params`: { username: string, deviceKey: string }                                                                   | Promise\<DeviceType>                          |
+| `adminForgetDevice`         | Forgets a user's device                         | `params`: { username: string, deviceKey: string }                                                                   | Promise\<boolean>                             |
+| `adminListDevices`          | Lists a user's devices                          | `params`: { username: string, limit?: number, paginationToken?: string }                                            | Promise\<ListDevicesResponse>                 |
+| `adminUserGlobalSignOut`    | Signs out a user from all devices               | `params`: { username: string }                                                                                      | Promise\<boolean>                             |
+| `getErrorInfo`              | Gets formatted error information                | `error`: unknown                                                                                                    | CognitoErrorInfo                              |
 
 #### AdminCreateUserParams
 

@@ -7,6 +7,18 @@ import {
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
   ChangePasswordCommand,
+  GetUserCommand,
+  UpdateUserAttributesCommand,
+  VerifyUserAttributeCommand,
+  GetUserAttributeVerificationCodeCommand,
+  GlobalSignOutCommand,
+  RespondToAuthChallengeCommand,
+  AssociateSoftwareTokenCommand,
+  VerifySoftwareTokenCommand,
+  SetUserMFAPreferenceCommand,
+  GetDeviceCommand,
+  ForgetDeviceCommand,
+  ListDevicesCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { createMockCognitoClient, createMockAuthResult } from '../utils/testUtils';
 
@@ -19,8 +31,19 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
     ConfirmSignUpCommand: jest.fn(),
     ForgotPasswordCommand: jest.fn(),
     ConfirmForgotPasswordCommand: jest.fn(),
-    RespondToAuthChallengeCommand: jest.fn(),
     ChangePasswordCommand: jest.fn(),
+    GetUserCommand: jest.fn(),
+    UpdateUserAttributesCommand: jest.fn(),
+    VerifyUserAttributeCommand: jest.fn(),
+    GetUserAttributeVerificationCodeCommand: jest.fn(),
+    GlobalSignOutCommand: jest.fn(),
+    RespondToAuthChallengeCommand: jest.fn(),
+    AssociateSoftwareTokenCommand: jest.fn(),
+    VerifySoftwareTokenCommand: jest.fn(),
+    SetUserMFAPreferenceCommand: jest.fn(),
+    GetDeviceCommand: jest.fn(),
+    ForgetDeviceCommand: jest.fn(),
+    ListDevicesCommand: jest.fn(),
     AuthFlowType: {
       USER_PASSWORD_AUTH: 'USER_PASSWORD_AUTH',
       REFRESH_TOKEN_AUTH: 'REFRESH_TOKEN_AUTH',
@@ -111,7 +134,7 @@ describe('CognitoUserClient', () => {
     });
   });
 
-  describe('registerUser', () => {
+  describe('signUp', () => {
     it('should successfully register a user', async () => {
       // Mock successful sign up response
       mockSend.mockResolvedValueOnce({
@@ -119,7 +142,7 @@ describe('CognitoUserClient', () => {
         UserConfirmed: false,
       });
 
-      const result = await client.registerUser({
+      const result = await client.signUp({
         username: 'newuser',
         password: 'Password123!',
         email: 'newuser@example.com',
@@ -150,12 +173,12 @@ describe('CognitoUserClient', () => {
     });
   });
 
-  describe('confirmRegistration', () => {
+  describe('confirmSignUp', () => {
     it('should successfully confirm a user registration', async () => {
       // Mock successful confirmation response
       mockSend.mockResolvedValueOnce({});
 
-      const result = await client.confirmRegistration({
+      const result = await client.confirmSignUp({
         username: 'newuser',
         confirmationCode: '123456',
       });
@@ -192,12 +215,12 @@ describe('CognitoUserClient', () => {
     });
   });
 
-  describe('resetPassword', () => {
+  describe('confirmForgotPassword', () => {
     it('should successfully reset a password', async () => {
       // Mock successful response
       mockSend.mockResolvedValueOnce({});
 
-      const result = await client.resetPassword({
+      const result = await client.confirmForgotPassword({
         username: 'someuser',
         confirmationCode: '123456',
         newPassword: 'NewPassword123!',
@@ -232,6 +255,545 @@ describe('CognitoUserClient', () => {
         AccessToken: 'mock-access-token',
         PreviousPassword: 'OldPassword123!',
         ProposedPassword: 'NewPassword123!',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('getUserAttributes', () => {
+    it('should successfully get user attributes', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        UserAttributes: [
+          { Name: 'email', Value: 'user@example.com' },
+          { Name: 'custom:role', Value: 'admin' },
+        ],
+      });
+
+      const result = await client.getUserAttributes({
+        accessToken: 'mock-access-token',
+      });
+
+      // Verify GetUserCommand was called with correct parameters
+      expect(GetUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        userAttributes: {
+          email: 'user@example.com',
+          customRole: 'admin',
+        },
+      });
+    });
+
+    it('should throw an error when user attributes cannot be retrieved', async () => {
+      // Mock failed response
+      mockSend.mockResolvedValueOnce({
+        // No UserAttributes
+      });
+
+      await expect(
+        client.getUserAttributes({
+          accessToken: 'mock-access-token',
+        }),
+      ).rejects.toThrow('Failed to get user attributes: No attributes returned');
+
+      // Verify GetUserCommand was still called
+      expect(GetUserCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateUserAttributes', () => {
+    it('should successfully update user attributes', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.updateUserAttributes({
+        accessToken: 'mock-access-token',
+        attributes: {
+          email: 'newemail@example.com',
+          customRole: 'manager',
+        },
+      });
+
+      // Verify UpdateUserAttributesCommand was called with correct parameters
+      expect(UpdateUserAttributesCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        UserAttributes: expect.arrayContaining([
+          { Name: 'email', Value: 'newemail@example.com' },
+          { Name: 'custom:role', Value: 'manager' },
+        ]),
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('getAttributeVerificationCode', () => {
+    it('should successfully request a verification code', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.getAttributeVerificationCode('mock-access-token', 'email');
+
+      // Verify GetUserAttributeVerificationCodeCommand was called with correct parameters
+      expect(GetUserAttributeVerificationCodeCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        AttributeName: 'email',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('verifyUserAttribute', () => {
+    it('should successfully verify a user attribute', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.verifyUserAttribute({
+        accessToken: 'mock-access-token',
+        attributeName: 'email',
+        code: '123456',
+      });
+
+      // Verify VerifyUserAttributeCommand was called with correct parameters
+      expect(VerifyUserAttributeCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        AttributeName: 'email',
+        Code: '123456',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('should successfully refresh tokens', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        AuthenticationResult: {
+          AccessToken: 'new-access-token',
+          IdToken: 'new-id-token',
+          ExpiresIn: 3600,
+          TokenType: 'Bearer',
+        },
+      });
+
+      const result = await client.refreshToken({
+        refreshToken: 'mock-refresh-token',
+      });
+
+      // Verify InitiateAuthCommand was called with correct parameters
+      expect(InitiateAuthCommand).toHaveBeenCalledWith({
+        AuthFlow: 'REFRESH_TOKEN_AUTH',
+        ClientId: '1234567890abcdef',
+        AuthParameters: {
+          REFRESH_TOKEN: 'mock-refresh-token',
+        },
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        accessToken: 'new-access-token',
+        idToken: 'new-id-token',
+        refreshToken: 'mock-refresh-token', // The original refresh token is preserved
+        expiresIn: 3600,
+        tokenType: 'Bearer',
+      });
+    });
+
+    it('should throw an error when refresh fails', async () => {
+      // Mock failed response
+      mockSend.mockRejectedValueOnce({
+        name: 'NotAuthorizedException',
+        message: 'Invalid refresh token',
+        code: 'NotAuthorizedException',
+      });
+
+      await expect(
+        client.refreshToken({
+          refreshToken: 'invalid-refresh-token',
+        }),
+      ).rejects.toThrow('RefreshToken error: Invalid refresh token');
+
+      // Verify InitiateAuthCommand was still called
+      expect(InitiateAuthCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMFAOptions', () => {
+    it('should successfully get MFA options', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        MFAOptions: [
+          { DeliveryMedium: 'SMS', AttributeName: 'phone_number' },
+          { DeliveryMedium: 'EMAIL', AttributeName: 'email' },
+        ],
+      });
+
+      const result = await client.getMFAOptions({
+        accessToken: 'mock-access-token',
+      });
+
+      // Verify GetUserCommand was called with correct parameters
+      expect(GetUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual([
+        { deliveryMedium: 'SMS', attributeName: 'phone_number' },
+        { deliveryMedium: 'EMAIL', attributeName: 'email' },
+      ]);
+    });
+
+    it('should return empty array when no MFA options', async () => {
+      // Mock response with no MFA options
+      mockSend.mockResolvedValueOnce({
+        // No MFAOptions field
+      });
+
+      const result = await client.getMFAOptions({
+        accessToken: 'mock-access-token',
+      });
+
+      // Verify GetUserCommand was called
+      expect(GetUserCommand).toHaveBeenCalled();
+
+      // Verify empty array is returned
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('associateSoftwareToken', () => {
+    it('should successfully associate a software token', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        SecretCode: 'BASE32ENCODEDSECRETSAMPLESTRING',
+        Session: 'session-token',
+      });
+
+      const result = await client.associateSoftwareToken({
+        accessToken: 'mock-access-token',
+      });
+
+      // Verify AssociateSoftwareTokenCommand was called with correct parameters
+      expect(AssociateSoftwareTokenCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        secretCode: 'BASE32ENCODEDSECRETSAMPLESTRING',
+        session: 'session-token',
+      });
+    });
+
+    it('should throw an error when no secret code is returned', async () => {
+      // Mock response with no secret code
+      mockSend.mockResolvedValueOnce({
+        // No SecretCode field
+        Session: 'session-token',
+      });
+
+      await expect(
+        client.associateSoftwareToken({
+          accessToken: 'mock-access-token',
+        }),
+      ).rejects.toThrow('Failed to associate software token: No secret code returned');
+
+      // Verify AssociateSoftwareTokenCommand was still called
+      expect(AssociateSoftwareTokenCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('verifySoftwareToken', () => {
+    it('should successfully verify a software token', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        Status: 'SUCCESS',
+      });
+
+      const result = await client.verifySoftwareToken({
+        accessToken: 'mock-access-token',
+        userCode: '123456',
+        friendlyDeviceName: 'My Phone',
+      });
+
+      // Verify VerifySoftwareTokenCommand was called with correct parameters
+      expect(VerifySoftwareTokenCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        UserCode: '123456',
+        FriendlyDeviceName: 'My Phone',
+        Session: undefined,
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('setUserMFAPreference', () => {
+    it('should successfully set MFA preferences', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.setUserMFAPreference({
+        accessToken: 'mock-access-token',
+        smsMfaSettings: {
+          enabled: true,
+          preferred: true,
+        },
+        softwareTokenMfaSettings: {
+          enabled: true,
+          preferred: false,
+        },
+      });
+
+      // Verify SetUserMFAPreferenceCommand was called with correct parameters
+      expect(SetUserMFAPreferenceCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        SMSMfaSettings: {
+          Enabled: true,
+          PreferredMfa: true,
+        },
+        SoftwareTokenMfaSettings: {
+          Enabled: true,
+          PreferredMfa: false,
+        },
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('getDevice', () => {
+    it('should successfully get device information', async () => {
+      const mockDate = new Date();
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        Device: {
+          DeviceKey: 'device-key-123',
+          DeviceAttributes: [
+            { Name: 'device_name', Value: 'iPhone' },
+            { Name: 'device_type', Value: 'mobile' },
+          ],
+          DeviceCreateDate: mockDate,
+          DeviceLastModifiedDate: mockDate,
+          DeviceLastAuthenticatedDate: mockDate,
+        },
+      });
+
+      const result = await client.getDevice({
+        accessToken: 'mock-access-token',
+        deviceKey: 'device-key-123',
+      });
+
+      // Verify GetDeviceCommand was called with correct parameters
+      expect(GetDeviceCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        DeviceKey: 'device-key-123',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        deviceKey: 'device-key-123',
+        deviceAttributes: {
+          deviceName: 'iPhone',
+          deviceType: 'mobile',
+        },
+        deviceCreateDate: mockDate,
+        deviceLastModifiedDate: mockDate,
+        deviceLastAuthenticatedDate: mockDate,
+      });
+    });
+
+    it('should throw an error when no device information is returned', async () => {
+      // Mock response with no device information
+      mockSend.mockResolvedValueOnce({
+        // No Device field
+      });
+
+      await expect(
+        client.getDevice({
+          accessToken: 'mock-access-token',
+          deviceKey: 'device-key-123',
+        }),
+      ).rejects.toThrow('Failed to get device: No device information returned');
+
+      // Verify GetDeviceCommand was still called
+      expect(GetDeviceCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('forgetDevice', () => {
+    it('should successfully forget a device', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.forgetDevice({
+        accessToken: 'mock-access-token',
+        deviceKey: 'device-key-123',
+      });
+
+      // Verify ForgetDeviceCommand was called with correct parameters
+      expect(ForgetDeviceCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        DeviceKey: 'device-key-123',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('listDevices', () => {
+    it('should successfully list devices', async () => {
+      const mockDate = new Date();
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({
+        Devices: [
+          {
+            DeviceKey: 'device-key-1',
+            DeviceAttributes: [{ Name: 'device_name', Value: 'iPhone' }],
+            DeviceCreateDate: mockDate,
+            DeviceLastModifiedDate: mockDate,
+          },
+          {
+            DeviceKey: 'device-key-2',
+            DeviceAttributes: [{ Name: 'device_name', Value: 'Android' }],
+            DeviceCreateDate: mockDate,
+            DeviceLastModifiedDate: mockDate,
+            DeviceLastAuthenticatedDate: mockDate,
+          },
+        ],
+        PaginationToken: 'next-page-token',
+      });
+
+      const result = await client.listDevices({
+        accessToken: 'mock-access-token',
+        limit: 10,
+      });
+
+      // Verify ListDevicesCommand was called with correct parameters
+      expect(ListDevicesCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        Limit: 10,
+        PaginationToken: undefined,
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        devices: [
+          {
+            deviceKey: 'device-key-1',
+            deviceAttributes: {
+              deviceName: 'iPhone',
+            },
+            deviceCreateDate: mockDate,
+            deviceLastModifiedDate: mockDate,
+            deviceLastAuthenticatedDate: undefined,
+          },
+          {
+            deviceKey: 'device-key-2',
+            deviceAttributes: {
+              deviceName: 'Android',
+            },
+            deviceCreateDate: mockDate,
+            deviceLastModifiedDate: mockDate,
+            deviceLastAuthenticatedDate: mockDate,
+          },
+        ],
+        paginationToken: 'next-page-token',
+      });
+    });
+  });
+
+  describe('respondToNewPasswordChallenge', () => {
+    it('should successfully respond to a new password challenge', async () => {
+      // Mock successful authentication response
+      const mockAuthResult = createMockAuthResult({
+        AccessToken: 'mock-access-token',
+        IdToken: 'mock-id-token',
+        RefreshToken: 'mock-refresh-token',
+        ExpiresIn: 3600,
+      });
+
+      mockSend.mockResolvedValueOnce({
+        AuthenticationResult: mockAuthResult,
+      });
+
+      const result = await client.respondToNewPasswordChallenge(
+        'NEW_PASSWORD_REQUIRED',
+        'testuser',
+        'NewPassword123!',
+        'session-token',
+      );
+
+      // Verify RespondToAuthChallengeCommand was called with correct parameters
+      expect(RespondToAuthChallengeCommand).toHaveBeenCalledWith({
+        ClientId: '1234567890abcdef',
+        ChallengeName: 'NEW_PASSWORD_REQUIRED',
+        Session: 'session-token',
+        ChallengeResponses: {
+          USERNAME: 'testuser',
+          NEW_PASSWORD: 'NewPassword123!',
+        },
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        accessToken: 'mock-access-token',
+        idToken: 'mock-id-token',
+        refreshToken: 'mock-refresh-token',
+        expiresIn: 3600,
+        tokenType: 'Bearer',
+      });
+    });
+
+    it('should throw an error when authentication challenge fails', async () => {
+      // Mock failed response
+      mockSend.mockRejectedValueOnce({
+        name: 'InvalidPasswordException',
+        message: 'Password does not conform to policy',
+        code: 'InvalidPasswordException',
+      });
+
+      await expect(
+        client.respondToNewPasswordChallenge(
+          'NEW_PASSWORD_REQUIRED',
+          'testuser',
+          'weak',
+          'session-token',
+        ),
+      ).rejects.toThrow('RespondToNewPasswordChallenge error: Password does not conform to policy');
+
+      // Verify RespondToAuthChallengeCommand was still called
+      expect(RespondToAuthChallengeCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('globalSignOut', () => {
+    it('should successfully sign out from all devices', async () => {
+      // Mock successful response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.globalSignOut({
+        accessToken: 'mock-access-token',
+      });
+
+      // Verify GlobalSignOutCommand was called with correct parameters
+      expect(GlobalSignOutCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
       });
 
       // Verify the response
