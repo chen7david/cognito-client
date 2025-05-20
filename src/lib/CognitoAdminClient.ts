@@ -116,13 +116,9 @@ export class CognitoAdminClient {
    * @param client - Optional CognitoIdentityProviderClient instance. If not provided, a new client will be created
    * @param throwOriginalErrors - When true, original Cognito errors will be thrown. When false (default), errors are mapped
    */
-  constructor(
-    config: CognitoAdminConfig,
-    client?: CognitoIdentityProviderClient,
-    throwOriginalErrors: boolean = false,
-  ) {
+  constructor(config: CognitoAdminConfig, client?: CognitoIdentityProviderClient) {
     this.config = config;
-    this.throwOriginalErrors = throwOriginalErrors;
+    this.throwOriginalErrors = config.throwOriginalErrors || false;
     this.client =
       client ||
       new CognitoIdentityProviderClient({
