@@ -64,6 +64,10 @@ import {
   ResendConfirmationCodeParams,
   SetUserSettingsParams,
   UpdateDeviceStatusParams,
+  GetMeParams,
+  GetMeResponse,
+  UpdateMeParams,
+  DeleteMeParams,
 } from '../types';
 
 import {
@@ -72,6 +76,8 @@ import {
   mapAttributes,
   formatError,
 } from '../utils/cognitoMapper';
+
+import { extractAccessToken } from '../utils/tokenUtils';
 
 /**
  * Client for Cognito user operations that don't require admin privileges
@@ -836,5 +842,94 @@ export class CognitoUserClient {
    */
   getErrorInfo(error: unknown): CognitoErrorInfo {
     return formatError(error);
+  }
+
+  /**
+   * Gets the current authenticated user by providing an authorization header with a Bearer token
+   * @param params - Parameters with authorization header containing the access token
+   * @returns Current user info including username and user attributes
+   */
+  async getMe(params: GetMeParams): Promise<GetMeResponse> {
+    try {
+      const { authorization } = params;
+      const accessToken = extractAccessToken(authorization);
+
+      if (!accessToken) {
+        throw new Error('No access token provided in authorization header');
+      }
+
+      const response = await this.client.send(
+        new GetUserCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      if (!response.Username || !response.UserAttributes) {
+        throw new Error('Failed to get user: Invalid response from Cognito');
+      }
+
+      return {
+        username: response.Username,
+        userAttributes: mapAttributes(response.UserAttributes),
+      };
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`GetMe error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Updates the current authenticated user by providing an authorization header with a Bearer token
+   * @param params - Parameters with authorization header containing the access token and attributes to update
+   * @returns Success status
+   */
+  async updateMe(params: UpdateMeParams): Promise<boolean> {
+    try {
+      const { authorization, attributes } = params;
+      const accessToken = extractAccessToken(authorization);
+
+      if (!accessToken) {
+        throw new Error('No access token provided in authorization header');
+      }
+
+      await this.client.send(
+        new UpdateUserAttributesCommand({
+          AccessToken: accessToken,
+          UserAttributes: mapToAttributeList(attributes),
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`UpdateMe error: ${formattedError.message}`);
+    }
+  }
+
+  /**
+   * Deletes the current authenticated user by providing an authorization header with a Bearer token
+   * @param params - Parameters with authorization header containing the access token
+   * @returns Success status
+   */
+  async deleteMe(params: DeleteMeParams): Promise<boolean> {
+    try {
+      const { authorization } = params;
+      const accessToken = extractAccessToken(authorization);
+
+      if (!accessToken) {
+        throw new Error('No access token provided in authorization header');
+      }
+
+      await this.client.send(
+        new DeleteUserCommand({
+          AccessToken: accessToken,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      const formattedError = formatError(error);
+      throw new Error(`DeleteMe error: ${formattedError.message}`);
+    }
   }
 }

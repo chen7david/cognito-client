@@ -727,3 +727,33 @@ export type AdminUpdateDeviceStatusParams = {
   deviceKey: string;
   deviceRememberedStatus: 'remembered' | 'not_remembered';
 };
+
+/**
+ * Parameters for getting the current user
+ */
+export type GetMeParams = {
+  authorization: string;
+};
+
+/**
+ * Response from getting the current user
+ */
+export type GetMeResponse = {
+  username: string;
+  userAttributes: Record<string, string>;
+};
+
+/**
+ * Parameters for updating the current user
+ */
+export type UpdateMeParams = {
+  authorization: string;
+  attributes: Record<string, string>;
+};
+
+/**
+ * Parameters for deleting the current user
+ */
+export type DeleteMeParams = {
+  authorization: string;
+};

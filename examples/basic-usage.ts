@@ -79,6 +79,28 @@ async function userClientExample(): Promise<void> {
       });
       console.log('User attributes:', userAttributes);
 
+      // Get the current user with a bearer token
+      const currentUser = await userClient.getMe({
+        authorization: `Bearer ${authResult.accessToken}`,
+      });
+      console.log('Current user:', currentUser);
+
+      // Update the current user with a bearer token
+      const updateMeResult = await userClient.updateMe({
+        authorization: `Bearer ${authResult.accessToken}`,
+        attributes: {
+          name: 'Updated via Bearer Token',
+          customData: 'updated via authorization header',
+        },
+      });
+      console.log('Update me result:', updateMeResult);
+
+      // Delete current user with a bearer token (commented out to not actually delete the user)
+      // const deleteMeResult = await userClient.deleteMe({
+      //   authorization: `Bearer ${authResult.accessToken}`,
+      // });
+      // console.log('Delete me result:', deleteMeResult);
+
       // 5. Update user attributes
       console.log('5. Updating user attributes...');
       const updateResult = await userClient.updateUserAttributes({

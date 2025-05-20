@@ -967,4 +967,228 @@ describe('CognitoUserClient', () => {
       expect(result).toBe(true);
     });
   });
+
+  describe('getMe', () => {
+    it('should get the current user with a valid authorization header', async () => {
+      // Mock successful get user response
+      mockSend.mockResolvedValueOnce({
+        Username: 'testuser',
+        UserAttributes: [
+          { Name: 'email', Value: 'test@example.com' },
+          { Name: 'custom:role', Value: 'user' },
+        ],
+      });
+
+      const result = await client.getMe({
+        authorization: 'Bearer mock-access-token',
+      });
+
+      // Verify GetUserCommand was called with correct parameters
+      expect(GetUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        username: 'testuser',
+        userAttributes: {
+          email: 'test@example.com',
+          customRole: 'user',
+        },
+      });
+    });
+
+    it('should work with an access token without Bearer prefix', async () => {
+      // Mock successful get user response
+      mockSend.mockResolvedValueOnce({
+        Username: 'testuser',
+        UserAttributes: [{ Name: 'email', Value: 'test@example.com' }],
+      });
+
+      const result = await client.getMe({
+        authorization: 'mock-access-token', // No Bearer prefix
+      });
+
+      // Verify GetUserCommand was called with correct parameters
+      expect(GetUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        username: 'testuser',
+        userAttributes: {
+          email: 'test@example.com',
+        },
+      });
+    });
+
+    it('should throw an error when no access token is provided', async () => {
+      await expect(
+        client.getMe({
+          authorization: '',
+        }),
+      ).rejects.toThrow('GetMe error: No access token provided in authorization header');
+    });
+
+    it('should throw an error when the get user call fails', async () => {
+      // Mock failed get user response
+      mockSend.mockRejectedValueOnce({
+        name: 'NotAuthorizedException',
+        message: 'Invalid access token',
+        code: 'NotAuthorizedException',
+      });
+
+      await expect(
+        client.getMe({
+          authorization: 'Bearer invalid-token',
+        }),
+      ).rejects.toThrow('GetMe error: Invalid access token');
+
+      // Verify GetUserCommand was still called
+      expect(GetUserCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateMe', () => {
+    it('should update the current user with a valid authorization header', async () => {
+      // Mock successful update response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.updateMe({
+        authorization: 'Bearer mock-access-token',
+        attributes: {
+          email: 'updated@example.com',
+          customRole: 'admin',
+        },
+      });
+
+      // Verify UpdateUserAttributesCommand was called with correct parameters
+      expect(UpdateUserAttributesCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        UserAttributes: expect.arrayContaining([
+          { Name: 'email', Value: 'updated@example.com' },
+          { Name: 'custom:role', Value: 'admin' },
+        ]),
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+
+    it('should work with an access token without Bearer prefix', async () => {
+      // Mock successful update response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.updateMe({
+        authorization: 'mock-access-token', // No Bearer prefix
+        attributes: {
+          email: 'updated@example.com',
+        },
+      });
+
+      // Verify UpdateUserAttributesCommand was called with correct parameters
+      expect(UpdateUserAttributesCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+        UserAttributes: expect.arrayContaining([{ Name: 'email', Value: 'updated@example.com' }]),
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+
+    it('should throw an error when no access token is provided', async () => {
+      await expect(
+        client.updateMe({
+          authorization: '',
+          attributes: {
+            email: 'updated@example.com',
+          },
+        }),
+      ).rejects.toThrow('UpdateMe error: No access token provided in authorization header');
+    });
+
+    it('should throw an error when the update call fails', async () => {
+      // Mock failed update response
+      mockSend.mockRejectedValueOnce({
+        name: 'NotAuthorizedException',
+        message: 'Invalid access token',
+        code: 'NotAuthorizedException',
+      });
+
+      await expect(
+        client.updateMe({
+          authorization: 'Bearer invalid-token',
+          attributes: {
+            email: 'updated@example.com',
+          },
+        }),
+      ).rejects.toThrow('UpdateMe error: Invalid access token');
+
+      // Verify UpdateUserAttributesCommand was still called
+      expect(UpdateUserAttributesCommand).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteMe', () => {
+    it('should delete the current user with a valid authorization header', async () => {
+      // Mock successful delete response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.deleteMe({
+        authorization: 'Bearer mock-access-token',
+      });
+
+      // Verify DeleteUserCommand was called with correct parameters
+      expect(DeleteUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+
+    it('should work with an access token without Bearer prefix', async () => {
+      // Mock successful delete response
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await client.deleteMe({
+        authorization: 'mock-access-token', // No Bearer prefix
+      });
+
+      // Verify DeleteUserCommand was called with correct parameters
+      expect(DeleteUserCommand).toHaveBeenCalledWith({
+        AccessToken: 'mock-access-token',
+      });
+
+      // Verify the response
+      expect(result).toBe(true);
+    });
+
+    it('should throw an error when no access token is provided', async () => {
+      await expect(
+        client.deleteMe({
+          authorization: '',
+        }),
+      ).rejects.toThrow('DeleteMe error: No access token provided in authorization header');
+    });
+
+    it('should throw an error when the delete call fails', async () => {
+      // Mock failed delete response
+      mockSend.mockRejectedValueOnce({
+        name: 'NotAuthorizedException',
+        message: 'Invalid access token',
+        code: 'NotAuthorizedException',
+      });
+
+      await expect(
+        client.deleteMe({
+          authorization: 'Bearer invalid-token',
+        }),
+      ).rejects.toThrow('DeleteMe error: Invalid access token');
+
+      // Verify DeleteUserCommand was still called
+      expect(DeleteUserCommand).toHaveBeenCalled();
+    });
+  });
 });
