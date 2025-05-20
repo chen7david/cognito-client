@@ -870,7 +870,7 @@ export class CognitoUserClient {
 
       return {
         username: response.Username,
-        userAttributes: mapAttributes(response.UserAttributes),
+        attributes: mapAttributes(response.UserAttributes),
       };
     } catch (error) {
       const formattedError = formatError(error);

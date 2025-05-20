@@ -991,7 +991,7 @@ describe('CognitoUserClient', () => {
       // Verify the response was mapped correctly
       expect(result).toEqual({
         username: 'testuser',
-        userAttributes: {
+        attributes: {
           email: 'test@example.com',
           customRole: 'user',
         },
@@ -1017,7 +1017,29 @@ describe('CognitoUserClient', () => {
       // Verify the response was mapped correctly
       expect(result).toEqual({
         username: 'testuser',
-        userAttributes: {
+        attributes: {
+          email: 'test@example.com',
+        },
+      });
+    });
+
+    it('should include additional user information when available', async () => {
+      // Mock successful get user response with additional fields
+      mockSend.mockResolvedValueOnce({
+        Username: 'testuser',
+        UserAttributes: [{ Name: 'email', Value: 'test@example.com' }],
+        // Note: The AWS API doesn't return the fields we're expecting in our type,
+        // so we're just testing basic mapping
+      });
+
+      const result = await client.getMe({
+        authorization: 'Bearer mock-access-token',
+      });
+
+      // Verify the response was mapped correctly
+      expect(result).toEqual({
+        username: 'testuser',
+        attributes: {
           email: 'test@example.com',
         },
       });

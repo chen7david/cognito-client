@@ -432,6 +432,17 @@ describe('Your Component', () => {
 | `userSub`       | string  | The unique identifier for the user                  |
 | `userConfirmed` | boolean | Whether the user is confirmed or needs confirmation |
 
+#### GetMeResponse
+
+| Property               | Type                   | Description                         |
+| ---------------------- | ---------------------- | ----------------------------------- |
+| `username`             | string                 | The username of the user            |
+| `userStatus`           | string (optional)      | The status of the user              |
+| `enabled`              | boolean (optional)     | Whether the user is enabled         |
+| `userCreateDate`       | Date (optional)        | The date the user was created       |
+| `userLastModifiedDate` | Date (optional)        | The date the user was last modified |
+| `attributes`           | Record<string, string> | User attributes as key-value pairs  |
+
 ### Admin Client Methods
 
 | Method                         | Description                                     | Parameters                                                                                                          | Return Type                                   |

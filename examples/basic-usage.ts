@@ -83,7 +83,8 @@ async function userClientExample(): Promise<void> {
       const currentUser = await userClient.getMe({
         authorization: `Bearer ${authResult.accessToken}`,
       });
-      console.log('Current user:', currentUser);
+      console.log('Current user:', currentUser.username);
+      console.log('User attributes:', currentUser.attributes);
 
       // Update the current user with a bearer token
       const updateMeResult = await userClient.updateMe({

@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Updated documentation to include new methods
+- Enhanced `GetMeResponse` type to include additional optional user information (userStatus, enabled, userCreateDate, userLastModifiedDate)
+- Renamed `userAttributes` to `attributes` in the `GetMeResponse` type for consistency
 
 ## [1.0.15] - Previous version
 

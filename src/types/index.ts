@@ -740,7 +740,11 @@ export type GetMeParams = {
  */
 export type GetMeResponse = {
   username: string;
-  userAttributes: Record<string, string>;
+  userStatus?: string;
+  enabled?: boolean;
+  userCreateDate?: Date;
+  userLastModifiedDate?: Date;
+  attributes: Record<string, string>;
 };
 
 /**
