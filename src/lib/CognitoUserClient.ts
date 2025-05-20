@@ -85,14 +85,21 @@ import { extractAccessToken } from '../utils/tokenUtils';
 export class CognitoUserClient {
   private client: CognitoIdentityProviderClient;
   private config: CognitoConfig;
+  private throwOriginalErrors: boolean;
 
   /**
    * Creates a new instance of CognitoUserClient
    * @param config - Configuration containing region, user pool ID, and client ID
    * @param client - Optional CognitoIdentityProviderClient instance. If not provided, a new client will be created
+   * @param throwOriginalErrors - When true, original Cognito errors will be thrown. When false (default), errors are mapped
    */
-  constructor(config: CognitoConfig, client?: CognitoIdentityProviderClient) {
+  constructor(
+    config: CognitoConfig,
+    client?: CognitoIdentityProviderClient,
+    throwOriginalErrors: boolean = false,
+  ) {
     this.config = config;
+    this.throwOriginalErrors = throwOriginalErrors;
     this.client =
       client ||
       new CognitoIdentityProviderClient({
@@ -138,6 +145,9 @@ export class CognitoUserClient {
 
       return mapAuthResult(response.AuthenticationResult);
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`SignIn error: ${formattedError.message}`);
     }
@@ -174,6 +184,9 @@ export class CognitoUserClient {
         userConfirmed: response.UserConfirmed || false,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`SignUp error: ${formattedError.message}`);
     }
@@ -198,6 +211,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ConfirmSignUp error: ${formattedError.message}`);
     }
@@ -221,6 +237,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ForgotPassword error: ${formattedError.message}`);
     }
@@ -246,6 +265,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ConfirmForgotPassword error: ${formattedError.message}`);
     }
@@ -282,6 +304,9 @@ export class CognitoUserClient {
 
       return authResult;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`RefreshToken error: ${formattedError.message}`);
     }
@@ -306,6 +331,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ChangePassword error: ${formattedError.message}`);
     }
@@ -334,6 +362,9 @@ export class CognitoUserClient {
         userAttributes: mapAttributes(response.UserAttributes),
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetUserAttributes error: ${formattedError.message}`);
     }
@@ -357,6 +388,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`UpdateUserAttributes error: ${formattedError.message}`);
     }
@@ -378,6 +412,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetAttributeVerificationCode error: ${formattedError.message}`);
     }
@@ -402,6 +439,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`VerifyUserAttribute error: ${formattedError.message}`);
     }
@@ -431,6 +471,9 @@ export class CognitoUserClient {
         attributeName: option.AttributeName || '',
       }));
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetMFAOptions error: ${formattedError.message}`);
     }
@@ -462,6 +505,9 @@ export class CognitoUserClient {
         session: response.Session,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AssociateSoftwareToken error: ${formattedError.message}`);
     }
@@ -487,6 +533,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`VerifySoftwareToken error: ${formattedError.message}`);
     }
@@ -521,6 +570,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`SetUserMFAPreference error: ${formattedError.message}`);
     }
@@ -559,6 +611,9 @@ export class CognitoUserClient {
           : undefined,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetDevice error: ${formattedError.message}`);
     }
@@ -582,6 +637,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ForgetDevice error: ${formattedError.message}`);
     }
@@ -621,6 +679,9 @@ export class CognitoUserClient {
         paginationToken: response.PaginationToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ListDevices error: ${formattedError.message}`);
     }
@@ -643,6 +704,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GlobalSignOut error: ${formattedError.message}`);
     }
@@ -681,6 +745,9 @@ export class CognitoUserClient {
 
       return mapAuthResult(response.AuthenticationResult);
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`RespondToNewPasswordChallenge error: ${formattedError.message}`);
     }
@@ -704,6 +771,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`DeleteUserAttributes error: ${formattedError.message}`);
     }
@@ -734,6 +804,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ConfirmDevice error: ${formattedError.message}`);
     }
@@ -756,6 +829,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`DeleteUser error: ${formattedError.message}`);
     }
@@ -780,6 +856,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ResendConfirmationCode error: ${formattedError.message}`);
     }
@@ -806,6 +885,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`SetUserSettings error: ${formattedError.message}`);
     }
@@ -830,6 +912,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`UpdateDeviceStatus error: ${formattedError.message}`);
     }
@@ -873,6 +958,9 @@ export class CognitoUserClient {
         attributes: mapAttributes(response.UserAttributes),
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetMe error: ${formattedError.message}`);
     }
@@ -901,6 +989,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`UpdateMe error: ${formattedError.message}`);
     }
@@ -928,6 +1019,9 @@ export class CognitoUserClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`DeleteMe error: ${formattedError.message}`);
     }

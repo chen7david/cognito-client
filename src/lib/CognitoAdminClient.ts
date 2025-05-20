@@ -108,14 +108,21 @@ import {
 export class CognitoAdminClient {
   private client: CognitoIdentityProviderClient;
   private config: CognitoAdminConfig;
+  private throwOriginalErrors: boolean;
 
   /**
    * Creates a new instance of CognitoAdminClient
    * @param config - Configuration including AWS credentials
    * @param client - Optional CognitoIdentityProviderClient instance. If not provided, a new client will be created
+   * @param throwOriginalErrors - When true, original Cognito errors will be thrown. When false (default), errors are mapped
    */
-  constructor(config: CognitoAdminConfig, client?: CognitoIdentityProviderClient) {
+  constructor(
+    config: CognitoAdminConfig,
+    client?: CognitoIdentityProviderClient,
+    throwOriginalErrors: boolean = false,
+  ) {
     this.config = config;
+    this.throwOriginalErrors = throwOriginalErrors;
     this.client =
       client ||
       new CognitoIdentityProviderClient({
@@ -189,6 +196,9 @@ export class CognitoAdminClient {
 
       return result;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`CreateUser error: ${formattedError.message}`);
     }
@@ -212,6 +222,9 @@ export class CognitoAdminClient {
 
       return mapAdminGetUserResponse(response);
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetUser error: ${formattedError.message}`);
     }
@@ -236,6 +249,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`UpdateUserAttributes error: ${formattedError.message}`);
     }
@@ -259,6 +275,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`DisableUser error: ${formattedError.message}`);
     }
@@ -282,6 +301,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`EnableUser error: ${formattedError.message}`);
     }
@@ -305,6 +327,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`DeleteUser error: ${formattedError.message}`);
     }
@@ -348,6 +373,9 @@ export class CognitoAdminClient {
         paginationToken: response.PaginationToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ListUsers error: ${formattedError.message}`);
     }
@@ -387,6 +415,9 @@ export class CognitoAdminClient {
 
       return result;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`InitiateAuth error: ${formattedError.message}`);
     }
@@ -426,6 +457,9 @@ export class CognitoAdminClient {
 
       return result;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`RespondToAuthChallenge error: ${formattedError.message}`);
     }
@@ -449,6 +483,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ResetUserPassword error: ${formattedError.message}`);
     }
@@ -478,6 +515,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`SetUserPassword error: ${formattedError.message}`);
     }
@@ -510,6 +550,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminConfirmSignUp error: ${formattedError.message}`);
     }
@@ -534,6 +577,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminAddUserToGroup error: ${formattedError.message}`);
     }
@@ -558,6 +604,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminRemoveUserFromGroup error: ${formattedError.message}`);
     }
@@ -595,6 +644,9 @@ export class CognitoAdminClient {
         nextToken: response.NextToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ListGroups error: ${formattedError.message}`);
     }
@@ -634,6 +686,9 @@ export class CognitoAdminClient {
         creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`CreateGroup error: ${formattedError.message}`);
     }
@@ -670,6 +725,9 @@ export class CognitoAdminClient {
         creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`GetGroup error: ${formattedError.message}`);
     }
@@ -709,6 +767,9 @@ export class CognitoAdminClient {
         creationDate: group.CreationDate ? new Date(group.CreationDate) : undefined,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`UpdateGroup error: ${formattedError.message}`);
     }
@@ -732,6 +793,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`DeleteGroup error: ${formattedError.message}`);
     }
@@ -775,6 +839,9 @@ export class CognitoAdminClient {
         nextToken: response.NextToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`ListUsersInGroup error: ${formattedError.message}`);
     }
@@ -815,6 +882,9 @@ export class CognitoAdminClient {
         nextToken: response.NextToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminListGroupsForUser error: ${formattedError.message}`);
     }
@@ -850,6 +920,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminSetUserMFAPreference error: ${formattedError.message}`);
     }
@@ -882,6 +955,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminLinkProviderForUser error: ${formattedError.message}`);
     }
@@ -921,6 +997,9 @@ export class CognitoAdminClient {
           : undefined,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminGetDevice error: ${formattedError.message}`);
     }
@@ -945,6 +1024,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminForgetDevice error: ${formattedError.message}`);
     }
@@ -985,6 +1067,9 @@ export class CognitoAdminClient {
         paginationToken: response.PaginationToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminListDevices error: ${formattedError.message}`);
     }
@@ -1008,6 +1093,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminUserGlobalSignOut error: ${formattedError.message}`);
     }
@@ -1032,6 +1120,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminDeleteUserAttributes error: ${formattedError.message}`);
     }
@@ -1059,6 +1150,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminDisableProviderForUser error: ${formattedError.message}`);
     }
@@ -1117,6 +1211,9 @@ export class CognitoAdminClient {
         nextToken: response.NextToken,
       };
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminListUserAuthEvents error: ${formattedError.message}`);
     }
@@ -1144,6 +1241,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminSetUserSettings error: ${formattedError.message}`);
     }
@@ -1169,6 +1269,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminUpdateAuthEventFeedback error: ${formattedError.message}`);
     }
@@ -1194,6 +1297,9 @@ export class CognitoAdminClient {
 
       return true;
     } catch (error) {
+      if (this.throwOriginalErrors) {
+        throw error;
+      }
       const formattedError = formatError(error);
       throw new Error(`AdminUpdateDeviceStatus error: ${formattedError.message}`);
     }
