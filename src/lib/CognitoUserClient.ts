@@ -70,12 +70,7 @@ import {
   DeleteMeParams,
 } from '../types';
 
-import {
-  mapAuthResult,
-  mapToAttributeList,
-  mapAttributes,
-  formatError,
-} from '../utils/cognitoMapper';
+import { mapAuthResult, mapToAttributeList, mapAttributes } from '../utils/cognitoMapper';
 
 import { extractAccessToken } from '../utils/tokenUtils';
 
@@ -85,21 +80,19 @@ import { extractAccessToken } from '../utils/tokenUtils';
 export class CognitoUserClient {
   private client: CognitoIdentityProviderClient;
   private config: CognitoConfig;
-  private throwOriginalErrors: boolean;
 
   /**
    * Creates a new instance of CognitoUserClient
    * @param config - Configuration containing region, user pool ID, and client ID
    * @param client - Optional CognitoIdentityProviderClient instance. If not provided, a new client will be created
-   * @param throwOriginalErrors - When true, original Cognito errors will be thrown. When false (default), errors are mapped
    */
   constructor(config: CognitoConfig, client?: CognitoIdentityProviderClient) {
     this.config = config;
-    this.throwOriginalErrors = config.throwOriginalErrors || false;
+
     this.client =
       client ||
       new CognitoIdentityProviderClient({
-        region: config.region,
+        region: this.config.region,
       });
   }
 
@@ -121,32 +114,24 @@ export class CognitoUserClient {
    * @returns Authentication result with tokens
    */
   async signIn(params: AuthParams): Promise<AuthResponse> {
-    try {
-      const { username, password } = params;
+    const { username, password } = params;
 
-      const response = await this.client.send(
-        new InitiateAuthCommand({
-          AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
-          ClientId: this.config.clientId,
-          AuthParameters: {
-            USERNAME: username,
-            PASSWORD: password,
-          },
-        }),
-      );
+    const response = await this.client.send(
+      new InitiateAuthCommand({
+        AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
+        ClientId: this.config.clientId,
+        AuthParameters: {
+          USERNAME: username,
+          PASSWORD: password,
+        },
+      }),
+    );
 
-      if (!response.AuthenticationResult) {
-        throw new Error('Authentication failed: No authentication result returned');
-      }
-
-      return mapAuthResult(response.AuthenticationResult);
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`SignIn error: ${formattedError.message}`);
+    if (!response.AuthenticationResult) {
+      throw new Error('Authentication failed: No authentication result returned');
     }
+
+    return mapAuthResult(response.AuthenticationResult);
   }
 
   /**
@@ -155,37 +140,29 @@ export class CognitoUserClient {
    * @returns Registration result
    */
   async signUp(params: SignUpParams): Promise<SignUpResponse> {
-    try {
-      const { username, password, email, phone, attributes = {} } = params;
+    const { username, password, email, phone, attributes = {} } = params;
 
-      // Prepare user attributes
-      const userAttributes = [
-        { Name: 'email', Value: email },
-        ...(phone ? [{ Name: 'phone_number', Value: phone }] : []),
-        ...mapToAttributeList(attributes),
-      ];
+    // Prepare user attributes
+    const userAttributes = [
+      { Name: 'email', Value: email },
+      ...(phone ? [{ Name: 'phone_number', Value: phone }] : []),
+      ...mapToAttributeList(attributes),
+    ];
 
-      const response = await this.client.send(
-        new SignUpCommand({
-          ClientId: this.config.clientId,
-          Username: username,
-          Password: password,
-          UserAttributes: userAttributes,
-        }),
-      );
+    const response = await this.client.send(
+      new SignUpCommand({
+        ClientId: this.config.clientId,
+        Username: username,
+        Password: password,
+        UserAttributes: userAttributes,
+      }),
+    );
 
-      return {
-        userId: username,
-        userSub: response.UserSub || '',
-        userConfirmed: response.UserConfirmed || false,
-      };
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`SignUp error: ${formattedError.message}`);
-    }
+    return {
+      userId: username,
+      userSub: response.UserSub || '',
+      userConfirmed: response.UserConfirmed || false,
+    };
   }
 
   /**
@@ -194,25 +171,17 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async confirmSignUp(params: ConfirmSignUpParams): Promise<boolean> {
-    try {
-      const { username, confirmationCode } = params;
+    const { username, confirmationCode } = params;
 
-      await this.client.send(
-        new ConfirmSignUpCommand({
-          ClientId: this.config.clientId,
-          Username: username,
-          ConfirmationCode: confirmationCode,
-        }),
-      );
+    await this.client.send(
+      new ConfirmSignUpCommand({
+        ClientId: this.config.clientId,
+        Username: username,
+        ConfirmationCode: confirmationCode,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ConfirmSignUp error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -221,24 +190,16 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async forgotPassword(params: ForgotPasswordParams): Promise<boolean> {
-    try {
-      const { username } = params;
+    const { username } = params;
 
-      await this.client.send(
-        new ForgotPasswordCommand({
-          ClientId: this.config.clientId,
-          Username: username,
-        }),
-      );
+    await this.client.send(
+      new ForgotPasswordCommand({
+        ClientId: this.config.clientId,
+        Username: username,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ForgotPassword error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -247,26 +208,18 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async confirmForgotPassword(params: ConfirmForgotPasswordParams): Promise<boolean> {
-    try {
-      const { username, confirmationCode, newPassword } = params;
+    const { username, confirmationCode, newPassword } = params;
 
-      await this.client.send(
-        new ConfirmForgotPasswordCommand({
-          ClientId: this.config.clientId,
-          Username: username,
-          ConfirmationCode: confirmationCode,
-          Password: newPassword,
-        }),
-      );
+    await this.client.send(
+      new ConfirmForgotPasswordCommand({
+        ClientId: this.config.clientId,
+        Username: username,
+        ConfirmationCode: confirmationCode,
+        Password: newPassword,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ConfirmForgotPassword error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -275,37 +228,29 @@ export class CognitoUserClient {
    * @returns New authentication tokens
    */
   async refreshToken(params: RefreshTokenParams): Promise<AuthResponse> {
-    try {
-      const { refreshToken } = params;
+    const { refreshToken } = params;
 
-      const response = await this.client.send(
-        new InitiateAuthCommand({
-          AuthFlow: AuthFlowType.REFRESH_TOKEN_AUTH,
-          ClientId: this.config.clientId,
-          AuthParameters: {
-            REFRESH_TOKEN: refreshToken,
-          },
-        }),
-      );
+    const response = await this.client.send(
+      new InitiateAuthCommand({
+        AuthFlow: AuthFlowType.REFRESH_TOKEN_AUTH,
+        ClientId: this.config.clientId,
+        AuthParameters: {
+          REFRESH_TOKEN: refreshToken,
+        },
+      }),
+    );
 
-      if (!response.AuthenticationResult) {
-        throw new Error('Failed to refresh token: No authentication result returned');
-      }
-
-      // Preserve the original refresh token as AWS doesn't return a new one
-      const authResult = mapAuthResult({
-        ...response.AuthenticationResult,
-        RefreshToken: refreshToken,
-      });
-
-      return authResult;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`RefreshToken error: ${formattedError.message}`);
+    if (!response.AuthenticationResult) {
+      throw new Error('Failed to refresh token: No authentication result returned');
     }
+
+    // Preserve the original refresh token as AWS doesn't return a new one
+    const authResult = mapAuthResult({
+      ...response.AuthenticationResult,
+      RefreshToken: refreshToken,
+    });
+
+    return authResult;
   }
 
   /**
@@ -314,25 +259,17 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async changePassword(params: ChangePasswordParams): Promise<boolean> {
-    try {
-      const { accessToken, oldPassword, newPassword } = params;
+    const { accessToken, oldPassword, newPassword } = params;
 
-      await this.client.send(
-        new ChangePasswordCommand({
-          AccessToken: accessToken,
-          PreviousPassword: oldPassword,
-          ProposedPassword: newPassword,
-        }),
-      );
+    await this.client.send(
+      new ChangePasswordCommand({
+        AccessToken: accessToken,
+        PreviousPassword: oldPassword,
+        ProposedPassword: newPassword,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ChangePassword error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -341,29 +278,21 @@ export class CognitoUserClient {
    * @returns User attributes
    */
   async getUserAttributes(params: GetUserAttributesParams): Promise<GetUserAttributesResponse> {
-    try {
-      const { accessToken } = params;
+    const { accessToken } = params;
 
-      const response = await this.client.send(
-        new GetUserCommand({
-          AccessToken: accessToken,
-        }),
-      );
+    const response = await this.client.send(
+      new GetUserCommand({
+        AccessToken: accessToken,
+      }),
+    );
 
-      if (!response.UserAttributes) {
-        throw new Error('Failed to get user attributes: No attributes returned');
-      }
-
-      return {
-        userAttributes: mapAttributes(response.UserAttributes),
-      };
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`GetUserAttributes error: ${formattedError.message}`);
+    if (!response.UserAttributes) {
+      throw new Error('Failed to get user attributes: No attributes returned');
     }
+
+    return {
+      userAttributes: mapAttributes(response.UserAttributes),
+    };
   }
 
   /**
@@ -372,24 +301,16 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async updateUserAttributes(params: UpdateUserAttributesParams): Promise<boolean> {
-    try {
-      const { accessToken, attributes } = params;
+    const { accessToken, attributes } = params;
 
-      await this.client.send(
-        new UpdateUserAttributesCommand({
-          AccessToken: accessToken,
-          UserAttributes: mapToAttributeList(attributes),
-        }),
-      );
+    await this.client.send(
+      new UpdateUserAttributesCommand({
+        AccessToken: accessToken,
+        UserAttributes: mapToAttributeList(attributes),
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`UpdateUserAttributes error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -398,22 +319,14 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async getAttributeVerificationCode(accessToken: string, attributeName: string): Promise<boolean> {
-    try {
-      await this.client.send(
-        new GetUserAttributeVerificationCodeCommand({
-          AccessToken: accessToken,
-          AttributeName: attributeName,
-        }),
-      );
+    await this.client.send(
+      new GetUserAttributeVerificationCodeCommand({
+        AccessToken: accessToken,
+        AttributeName: attributeName,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`GetAttributeVerificationCode error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -422,25 +335,17 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async verifyUserAttribute(params: VerifyAttributeParams): Promise<boolean> {
-    try {
-      const { accessToken, attributeName, code } = params;
+    const { accessToken, attributeName, code } = params;
 
-      await this.client.send(
-        new VerifyUserAttributeCommand({
-          AccessToken: accessToken,
-          AttributeName: attributeName,
-          Code: code,
-        }),
-      );
+    await this.client.send(
+      new VerifyUserAttributeCommand({
+        AccessToken: accessToken,
+        AttributeName: attributeName,
+        Code: code,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`VerifyUserAttribute error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -449,30 +354,22 @@ export class CognitoUserClient {
    * @returns MFA options
    */
   async getMFAOptions(params: GetMFAOptionsParams): Promise<MFAOption[]> {
-    try {
-      const { accessToken } = params;
+    const { accessToken } = params;
 
-      const response = await this.client.send(
-        new GetUserCommand({
-          AccessToken: accessToken,
-        }),
-      );
+    const response = await this.client.send(
+      new GetUserCommand({
+        AccessToken: accessToken,
+      }),
+    );
 
-      if (!response.MFAOptions) {
-        return [];
-      }
-
-      return response.MFAOptions.map((option) => ({
-        deliveryMedium: option.DeliveryMedium || '',
-        attributeName: option.AttributeName || '',
-      }));
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`GetMFAOptions error: ${formattedError.message}`);
+    if (!response.MFAOptions) {
+      return [];
     }
+
+    return response.MFAOptions.map((option) => ({
+      deliveryMedium: option.DeliveryMedium || '',
+      attributeName: option.AttributeName || '',
+    }));
   }
 
   /**
@@ -483,30 +380,22 @@ export class CognitoUserClient {
   async associateSoftwareToken(
     params: AssociateSoftwareTokenParams,
   ): Promise<AssociateSoftwareTokenResponse> {
-    try {
-      const { accessToken } = params;
+    const { accessToken } = params;
 
-      const response = await this.client.send(
-        new AssociateSoftwareTokenCommand({
-          AccessToken: accessToken,
-        }),
-      );
+    const response = await this.client.send(
+      new AssociateSoftwareTokenCommand({
+        AccessToken: accessToken,
+      }),
+    );
 
-      if (!response.SecretCode) {
-        throw new Error('Failed to associate software token: No secret code returned');
-      }
-
-      return {
-        secretCode: response.SecretCode,
-        session: response.Session,
-      };
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`AssociateSoftwareToken error: ${formattedError.message}`);
+    if (!response.SecretCode) {
+      throw new Error('Failed to associate software token: No secret code returned');
     }
+
+    return {
+      secretCode: response.SecretCode,
+      session: response.Session,
+    };
   }
 
   /**
@@ -515,26 +404,18 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async verifySoftwareToken(params: VerifySoftwareTokenParams): Promise<boolean> {
-    try {
-      const { accessToken, userCode, friendlyDeviceName, session } = params;
+    const { accessToken, userCode, friendlyDeviceName, session } = params;
 
-      await this.client.send(
-        new VerifySoftwareTokenCommand({
-          AccessToken: accessToken,
-          UserCode: userCode,
-          FriendlyDeviceName: friendlyDeviceName,
-          Session: session,
-        }),
-      );
+    await this.client.send(
+      new VerifySoftwareTokenCommand({
+        AccessToken: accessToken,
+        UserCode: userCode,
+        FriendlyDeviceName: friendlyDeviceName,
+        Session: session,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`VerifySoftwareToken error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -543,35 +424,27 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async setUserMFAPreference(params: SetUserMFAPreferenceParams): Promise<boolean> {
-    try {
-      const { accessToken, smsMfaSettings, softwareTokenMfaSettings } = params;
+    const { accessToken, smsMfaSettings, softwareTokenMfaSettings } = params;
 
-      await this.client.send(
-        new SetUserMFAPreferenceCommand({
-          AccessToken: accessToken,
-          SMSMfaSettings: smsMfaSettings
-            ? {
-                Enabled: smsMfaSettings.enabled,
-                PreferredMfa: smsMfaSettings.preferred,
-              }
-            : undefined,
-          SoftwareTokenMfaSettings: softwareTokenMfaSettings
-            ? {
-                Enabled: softwareTokenMfaSettings.enabled,
-                PreferredMfa: softwareTokenMfaSettings.preferred,
-              }
-            : undefined,
-        }),
-      );
+    await this.client.send(
+      new SetUserMFAPreferenceCommand({
+        AccessToken: accessToken,
+        SMSMfaSettings: smsMfaSettings
+          ? {
+              Enabled: smsMfaSettings.enabled,
+              PreferredMfa: smsMfaSettings.preferred,
+            }
+          : undefined,
+        SoftwareTokenMfaSettings: softwareTokenMfaSettings
+          ? {
+              Enabled: softwareTokenMfaSettings.enabled,
+              PreferredMfa: softwareTokenMfaSettings.preferred,
+            }
+          : undefined,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`SetUserMFAPreference error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -580,39 +453,31 @@ export class CognitoUserClient {
    * @returns Device information
    */
   async getDevice(params: GetDeviceParams): Promise<DeviceType> {
-    try {
-      const { accessToken, deviceKey } = params;
+    const { accessToken, deviceKey } = params;
 
-      const response = await this.client.send(
-        new GetDeviceCommand({
-          AccessToken: accessToken,
-          DeviceKey: deviceKey,
-        }),
-      );
+    const response = await this.client.send(
+      new GetDeviceCommand({
+        AccessToken: accessToken,
+        DeviceKey: deviceKey,
+      }),
+    );
 
-      if (!response.Device) {
-        throw new Error('Failed to get device: No device information returned');
-      }
-
-      const device = response.Device;
-      return {
-        deviceKey: device.DeviceKey || '',
-        deviceAttributes: mapAttributes(device.DeviceAttributes),
-        deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
-        deviceLastModifiedDate: device.DeviceLastModifiedDate
-          ? new Date(device.DeviceLastModifiedDate)
-          : new Date(),
-        deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
-          ? new Date(device.DeviceLastAuthenticatedDate)
-          : undefined,
-      };
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`GetDevice error: ${formattedError.message}`);
+    if (!response.Device) {
+      throw new Error('Failed to get device: No device information returned');
     }
+
+    const device = response.Device;
+    return {
+      deviceKey: device.DeviceKey || '',
+      deviceAttributes: mapAttributes(device.DeviceAttributes),
+      deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
+      deviceLastModifiedDate: device.DeviceLastModifiedDate
+        ? new Date(device.DeviceLastModifiedDate)
+        : new Date(),
+      deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
+        ? new Date(device.DeviceLastAuthenticatedDate)
+        : undefined,
+    };
   }
 
   /**
@@ -621,24 +486,16 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async forgetDevice(params: ForgetDeviceParams): Promise<boolean> {
-    try {
-      const { accessToken, deviceKey } = params;
+    const { accessToken, deviceKey } = params;
 
-      await this.client.send(
-        new ForgetDeviceCommand({
-          AccessToken: accessToken,
-          DeviceKey: deviceKey,
-        }),
-      );
+    await this.client.send(
+      new ForgetDeviceCommand({
+        AccessToken: accessToken,
+        DeviceKey: deviceKey,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ForgetDevice error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -647,40 +504,32 @@ export class CognitoUserClient {
    * @returns List of devices
    */
   async listDevices(params: ListDevicesParams): Promise<ListDevicesResponse> {
-    try {
-      const { accessToken, limit, paginationToken } = params;
+    const { accessToken, limit, paginationToken } = params;
 
-      const response = await this.client.send(
-        new ListDevicesCommand({
-          AccessToken: accessToken,
-          Limit: limit,
-          PaginationToken: paginationToken,
-        }),
-      );
+    const response = await this.client.send(
+      new ListDevicesCommand({
+        AccessToken: accessToken,
+        Limit: limit,
+        PaginationToken: paginationToken,
+      }),
+    );
 
-      const devices = (response.Devices || []).map((device) => ({
-        deviceKey: device.DeviceKey || '',
-        deviceAttributes: mapAttributes(device.DeviceAttributes),
-        deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
-        deviceLastModifiedDate: device.DeviceLastModifiedDate
-          ? new Date(device.DeviceLastModifiedDate)
-          : new Date(),
-        deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
-          ? new Date(device.DeviceLastAuthenticatedDate)
-          : undefined,
-      }));
+    const devices = (response.Devices || []).map((device) => ({
+      deviceKey: device.DeviceKey || '',
+      deviceAttributes: mapAttributes(device.DeviceAttributes),
+      deviceCreateDate: device.DeviceCreateDate ? new Date(device.DeviceCreateDate) : new Date(),
+      deviceLastModifiedDate: device.DeviceLastModifiedDate
+        ? new Date(device.DeviceLastModifiedDate)
+        : new Date(),
+      deviceLastAuthenticatedDate: device.DeviceLastAuthenticatedDate
+        ? new Date(device.DeviceLastAuthenticatedDate)
+        : undefined,
+    }));
 
-      return {
-        devices,
-        paginationToken: response.PaginationToken,
-      };
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ListDevices error: ${formattedError.message}`);
-    }
+    return {
+      devices,
+      paginationToken: response.PaginationToken,
+    };
   }
 
   /**
@@ -689,23 +538,15 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async globalSignOut(params: GlobalSignOutParams): Promise<boolean> {
-    try {
-      const { accessToken } = params;
+    const { accessToken } = params;
 
-      await this.client.send(
-        new GlobalSignOutCommand({
-          AccessToken: accessToken,
-        }),
-      );
+    await this.client.send(
+      new GlobalSignOutCommand({
+        AccessToken: accessToken,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`GlobalSignOut error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -722,31 +563,23 @@ export class CognitoUserClient {
     newPassword: string,
     session: string,
   ): Promise<AuthResponse> {
-    try {
-      const response = await this.client.send(
-        new RespondToAuthChallengeCommand({
-          ClientId: this.config.clientId,
-          ChallengeName: challengeName as ChallengeNameType,
-          Session: session,
-          ChallengeResponses: {
-            USERNAME: username,
-            NEW_PASSWORD: newPassword,
-          },
-        }),
-      );
+    const response = await this.client.send(
+      new RespondToAuthChallengeCommand({
+        ClientId: this.config.clientId,
+        ChallengeName: challengeName as ChallengeNameType,
+        Session: session,
+        ChallengeResponses: {
+          USERNAME: username,
+          NEW_PASSWORD: newPassword,
+        },
+      }),
+    );
 
-      if (!response.AuthenticationResult) {
-        throw new Error('Authentication challenge failed: No authentication result returned');
-      }
-
-      return mapAuthResult(response.AuthenticationResult);
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`RespondToNewPasswordChallenge error: ${formattedError.message}`);
+    if (!response.AuthenticationResult) {
+      throw new Error('Authentication challenge failed: No authentication result returned');
     }
+
+    return mapAuthResult(response.AuthenticationResult);
   }
 
   /**
@@ -755,24 +588,16 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async deleteUserAttributes(params: DeleteUserAttributesParams): Promise<boolean> {
-    try {
-      const { accessToken, attributeNames } = params;
+    const { accessToken, attributeNames } = params;
 
-      await this.client.send(
-        new DeleteUserAttributesCommand({
-          AccessToken: accessToken,
-          UserAttributeNames: attributeNames,
-        }),
-      );
+    await this.client.send(
+      new DeleteUserAttributesCommand({
+        AccessToken: accessToken,
+        UserAttributeNames: attributeNames,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`DeleteUserAttributes error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -781,31 +606,23 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async confirmDevice(params: ConfirmDeviceParams): Promise<boolean> {
-    try {
-      const { accessToken, deviceKey, deviceName, deviceSecretVerifierConfig } = params;
+    const { accessToken, deviceKey, deviceName, deviceSecretVerifierConfig } = params;
 
-      await this.client.send(
-        new ConfirmDeviceCommand({
-          AccessToken: accessToken,
-          DeviceKey: deviceKey,
-          DeviceName: deviceName,
-          DeviceSecretVerifierConfig: deviceSecretVerifierConfig
-            ? {
-                PasswordVerifier: deviceSecretVerifierConfig.passwordVerifier,
-                Salt: deviceSecretVerifierConfig.salt,
-              }
-            : undefined,
-        }),
-      );
+    await this.client.send(
+      new ConfirmDeviceCommand({
+        AccessToken: accessToken,
+        DeviceKey: deviceKey,
+        DeviceName: deviceName,
+        DeviceSecretVerifierConfig: deviceSecretVerifierConfig
+          ? {
+              PasswordVerifier: deviceSecretVerifierConfig.passwordVerifier,
+              Salt: deviceSecretVerifierConfig.salt,
+            }
+          : undefined,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ConfirmDevice error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -814,23 +631,15 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async deleteUser(params: DeleteUserParams): Promise<boolean> {
-    try {
-      const { accessToken } = params;
+    const { accessToken } = params;
 
-      await this.client.send(
-        new DeleteUserCommand({
-          AccessToken: accessToken,
-        }),
-      );
+    await this.client.send(
+      new DeleteUserCommand({
+        AccessToken: accessToken,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`DeleteUser error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -839,25 +648,17 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async resendConfirmationCode(params: ResendConfirmationCodeParams): Promise<boolean> {
-    try {
-      const { username, clientMetadata } = params;
+    const { username, clientMetadata } = params;
 
-      await this.client.send(
-        new ResendConfirmationCodeCommand({
-          ClientId: this.config.clientId,
-          Username: username,
-          ClientMetadata: clientMetadata,
-        }),
-      );
+    await this.client.send(
+      new ResendConfirmationCodeCommand({
+        ClientId: this.config.clientId,
+        Username: username,
+        ClientMetadata: clientMetadata,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`ResendConfirmationCode error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -866,27 +667,19 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async setUserSettings(params: SetUserSettingsParams): Promise<boolean> {
-    try {
-      const { accessToken, mfaOptions } = params;
+    const { accessToken, mfaOptions } = params;
 
-      await this.client.send(
-        new SetUserSettingsCommand({
-          AccessToken: accessToken,
-          MFAOptions: mfaOptions.map((option) => ({
-            DeliveryMedium: option.deliveryMedium as DeliveryMediumType,
-            AttributeName: option.attributeName,
-          })),
-        }),
-      );
+    await this.client.send(
+      new SetUserSettingsCommand({
+        AccessToken: accessToken,
+        MFAOptions: mfaOptions.map((option) => ({
+          DeliveryMedium: option.deliveryMedium as DeliveryMediumType,
+          AttributeName: option.attributeName,
+        })),
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`SetUserSettings error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
@@ -895,34 +688,37 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async updateDeviceStatus(params: UpdateDeviceStatusParams): Promise<boolean> {
-    try {
-      const { accessToken, deviceKey, deviceRememberedStatus } = params;
+    const { accessToken, deviceKey, deviceRememberedStatus } = params;
 
-      await this.client.send(
-        new UpdateDeviceStatusCommand({
-          AccessToken: accessToken,
-          DeviceKey: deviceKey,
-          DeviceRememberedStatus: deviceRememberedStatus,
-        }),
-      );
+    await this.client.send(
+      new UpdateDeviceStatusCommand({
+        AccessToken: accessToken,
+        DeviceKey: deviceKey,
+        DeviceRememberedStatus: deviceRememberedStatus,
+      }),
+    );
 
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`UpdateDeviceStatus error: ${formattedError.message}`);
-    }
+    return true;
   }
 
   /**
    * Gets error information from an Error object
    * @param error - The error object
-   * @returns Formatted error information
+   * @returns The original error - no longer mapped
    */
   getErrorInfo(error: unknown): CognitoErrorInfo {
-    return formatError(error);
+    if (error instanceof Error) {
+      return {
+        code: 'UnknownError',
+        name: error.name,
+        message: error.message,
+      };
+    }
+    return {
+      code: 'UnknownError',
+      name: 'Error',
+      message: String(error),
+    };
   }
 
   /**
@@ -931,35 +727,27 @@ export class CognitoUserClient {
    * @returns Current user info including username and user attributes
    */
   async getMe(params: GetMeParams): Promise<GetMeResponse> {
-    try {
-      const { authorization } = params;
-      const accessToken = extractAccessToken(authorization);
+    const { authorization } = params;
+    const accessToken = extractAccessToken(authorization);
 
-      if (!accessToken) {
-        throw new Error('No access token provided in authorization header');
-      }
-
-      const response = await this.client.send(
-        new GetUserCommand({
-          AccessToken: accessToken,
-        }),
-      );
-
-      if (!response.Username || !response.UserAttributes) {
-        throw new Error('Failed to get user: Invalid response from Cognito');
-      }
-
-      return {
-        username: response.Username,
-        attributes: mapAttributes(response.UserAttributes),
-      };
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`GetMe error: ${formattedError.message}`);
+    if (!accessToken) {
+      throw new Error('No access token provided in authorization header');
     }
+
+    const response = await this.client.send(
+      new GetUserCommand({
+        AccessToken: accessToken,
+      }),
+    );
+
+    if (!response.Username || !response.UserAttributes) {
+      throw new Error('Failed to get user: Invalid response from Cognito');
+    }
+
+    return {
+      username: response.Username,
+      attributes: mapAttributes(response.UserAttributes),
+    };
   }
 
   /**
@@ -968,29 +756,21 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async updateMe(params: UpdateMeParams): Promise<boolean> {
-    try {
-      const { authorization, attributes } = params;
-      const accessToken = extractAccessToken(authorization);
+    const { authorization, attributes } = params;
+    const accessToken = extractAccessToken(authorization);
 
-      if (!accessToken) {
-        throw new Error('No access token provided in authorization header');
-      }
-
-      await this.client.send(
-        new UpdateUserAttributesCommand({
-          AccessToken: accessToken,
-          UserAttributes: mapToAttributeList(attributes),
-        }),
-      );
-
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`UpdateMe error: ${formattedError.message}`);
+    if (!accessToken) {
+      throw new Error('No access token provided in authorization header');
     }
+
+    await this.client.send(
+      new UpdateUserAttributesCommand({
+        AccessToken: accessToken,
+        UserAttributes: mapToAttributeList(attributes),
+      }),
+    );
+
+    return true;
   }
 
   /**
@@ -999,27 +779,19 @@ export class CognitoUserClient {
    * @returns Success status
    */
   async deleteMe(params: DeleteMeParams): Promise<boolean> {
-    try {
-      const { authorization } = params;
-      const accessToken = extractAccessToken(authorization);
+    const { authorization } = params;
+    const accessToken = extractAccessToken(authorization);
 
-      if (!accessToken) {
-        throw new Error('No access token provided in authorization header');
-      }
-
-      await this.client.send(
-        new DeleteUserCommand({
-          AccessToken: accessToken,
-        }),
-      );
-
-      return true;
-    } catch (error) {
-      if (this.throwOriginalErrors) {
-        throw error;
-      }
-      const formattedError = formatError(error);
-      throw new Error(`DeleteMe error: ${formattedError.message}`);
+    if (!accessToken) {
+      throw new Error('No access token provided in authorization header');
     }
+
+    await this.client.send(
+      new DeleteUserCommand({
+        AccessToken: accessToken,
+      }),
+    );
+
+    return true;
   }
 }

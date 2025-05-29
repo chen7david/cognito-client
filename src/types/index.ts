@@ -5,7 +5,6 @@ export type CognitoConfig = {
   region: string;
   userPoolId: string;
   clientId: string;
-  throwOriginalErrors?: boolean;
 };
 
 /**
@@ -21,7 +20,6 @@ export type AwsCredentials = {
  */
 export type CognitoAdminConfig = CognitoConfig & {
   credentials: AwsCredentials;
-  throwOriginalErrors?: boolean;
 };
 
 /**

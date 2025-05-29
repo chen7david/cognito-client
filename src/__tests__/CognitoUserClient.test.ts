@@ -26,47 +26,43 @@ import {
   SetUserSettingsCommand,
   UpdateDeviceStatusCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { createMockCognitoClient, createMockAuthResult } from '../utils/testUtils';
+import {
+  createMockCognitoClient,
+  createMockAuthResult,
+  createMockAwsError,
+} from '../utils/testUtils';
 
 // Mock the AWS SDK
 jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
   return {
-    CognitoIdentityProviderClient: jest.fn(),
+    ...jest.requireActual('@aws-sdk/client-cognito-identity-provider'),
+    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
+      send: jest.fn(),
+    })),
     InitiateAuthCommand: jest.fn(),
     SignUpCommand: jest.fn(),
     ConfirmSignUpCommand: jest.fn(),
     ForgotPasswordCommand: jest.fn(),
     ConfirmForgotPasswordCommand: jest.fn(),
+    RespondToAuthChallengeCommand: jest.fn(),
     ChangePasswordCommand: jest.fn(),
     GetUserCommand: jest.fn(),
     UpdateUserAttributesCommand: jest.fn(),
     VerifyUserAttributeCommand: jest.fn(),
     GetUserAttributeVerificationCodeCommand: jest.fn(),
     GlobalSignOutCommand: jest.fn(),
-    RespondToAuthChallengeCommand: jest.fn(),
-    AssociateSoftwareTokenCommand: jest.fn(),
-    VerifySoftwareTokenCommand: jest.fn(),
-    SetUserMFAPreferenceCommand: jest.fn(),
     GetDeviceCommand: jest.fn(),
     ForgetDeviceCommand: jest.fn(),
     ListDevicesCommand: jest.fn(),
+    AssociateSoftwareTokenCommand: jest.fn(),
+    VerifySoftwareTokenCommand: jest.fn(),
+    SetUserMFAPreferenceCommand: jest.fn(),
     DeleteUserAttributesCommand: jest.fn(),
     ConfirmDeviceCommand: jest.fn(),
     DeleteUserCommand: jest.fn(),
     ResendConfirmationCodeCommand: jest.fn(),
     SetUserSettingsCommand: jest.fn(),
     UpdateDeviceStatusCommand: jest.fn(),
-    AuthFlowType: {
-      USER_PASSWORD_AUTH: 'USER_PASSWORD_AUTH',
-      REFRESH_TOKEN_AUTH: 'REFRESH_TOKEN_AUTH',
-    },
-    ChallengeNameType: {
-      NEW_PASSWORD_REQUIRED: 'NEW_PASSWORD_REQUIRED',
-    },
-    DeliveryMediumType: {
-      SMS: 'SMS',
-      EMAIL: 'EMAIL',
-    },
   };
 });
 
@@ -131,19 +127,20 @@ describe('CognitoUserClient', () => {
     });
 
     it('should throw an error when authentication fails', async () => {
-      // Mock failed authentication response
-      mockSend.mockRejectedValueOnce({
-        name: 'NotAuthorizedException',
-        message: 'Incorrect username or password',
-        code: 'NotAuthorizedException',
-      });
+      // Mock an error response
+      const error = createMockAwsError(
+        'NotAuthorizedException',
+        'Incorrect username or password',
+        'NotAuthorizedException',
+      );
+      mockSend.mockRejectedValueOnce(error);
 
       await expect(
         client.signIn({
           username: 'testuser',
           password: 'wrongpassword',
         }),
-      ).rejects.toThrow('SignIn error: Incorrect username or password');
+      ).rejects.toThrow('Incorrect username or password');
 
       // Verify InitiateAuthCommand was still called
       expect(InitiateAuthCommand).toHaveBeenCalled();
@@ -427,18 +424,19 @@ describe('CognitoUserClient', () => {
     });
 
     it('should throw an error when refresh fails', async () => {
-      // Mock failed response
-      mockSend.mockRejectedValueOnce({
-        name: 'NotAuthorizedException',
-        message: 'Invalid refresh token',
-        code: 'NotAuthorizedException',
-      });
+      // Mock an error response
+      const error = createMockAwsError(
+        'NotAuthorizedException',
+        'Invalid refresh token',
+        'NotAuthorizedException',
+      );
+      mockSend.mockRejectedValueOnce(error);
 
       await expect(
         client.refreshToken({
           refreshToken: 'invalid-refresh-token',
         }),
-      ).rejects.toThrow('RefreshToken error: Invalid refresh token');
+      ).rejects.toThrow('Invalid refresh token');
 
       // Verify InitiateAuthCommand was still called
       expect(InitiateAuthCommand).toHaveBeenCalled();
@@ -777,12 +775,13 @@ describe('CognitoUserClient', () => {
     });
 
     it('should throw an error when authentication challenge fails', async () => {
-      // Mock failed response
-      mockSend.mockRejectedValueOnce({
-        name: 'InvalidPasswordException',
-        message: 'Password does not conform to policy',
-        code: 'InvalidPasswordException',
-      });
+      // Mock an error response
+      const error = createMockAwsError(
+        'InvalidPasswordException',
+        'Password does not conform to policy',
+        'InvalidPasswordException',
+      );
+      mockSend.mockRejectedValueOnce(error);
 
       await expect(
         client.respondToNewPasswordChallenge(
@@ -791,7 +790,7 @@ describe('CognitoUserClient', () => {
           'weak',
           'session-token',
         ),
-      ).rejects.toThrow('RespondToNewPasswordChallenge error: Password does not conform to policy');
+      ).rejects.toThrow('Password does not conform to policy');
 
       // Verify RespondToAuthChallengeCommand was still called
       expect(RespondToAuthChallengeCommand).toHaveBeenCalled();
@@ -1050,22 +1049,23 @@ describe('CognitoUserClient', () => {
         client.getMe({
           authorization: '',
         }),
-      ).rejects.toThrow('GetMe error: No access token provided in authorization header');
+      ).rejects.toThrow('No access token provided in authorization header');
     });
 
     it('should throw an error when the get user call fails', async () => {
-      // Mock failed get user response
-      mockSend.mockRejectedValueOnce({
-        name: 'NotAuthorizedException',
-        message: 'Invalid access token',
-        code: 'NotAuthorizedException',
-      });
+      // Mock an error response
+      const error = createMockAwsError(
+        'NotAuthorizedException',
+        'Invalid access token',
+        'NotAuthorizedException',
+      );
+      mockSend.mockRejectedValueOnce(error);
 
       await expect(
         client.getMe({
           authorization: 'Bearer invalid-token',
         }),
-      ).rejects.toThrow('GetMe error: Invalid access token');
+      ).rejects.toThrow('Invalid access token');
 
       // Verify GetUserCommand was still called
       expect(GetUserCommand).toHaveBeenCalled();
@@ -1127,16 +1127,17 @@ describe('CognitoUserClient', () => {
             email: 'updated@example.com',
           },
         }),
-      ).rejects.toThrow('UpdateMe error: No access token provided in authorization header');
+      ).rejects.toThrow('No access token provided in authorization header');
     });
 
     it('should throw an error when the update call fails', async () => {
-      // Mock failed update response
-      mockSend.mockRejectedValueOnce({
-        name: 'NotAuthorizedException',
-        message: 'Invalid access token',
-        code: 'NotAuthorizedException',
-      });
+      // Mock an error response
+      const error = createMockAwsError(
+        'NotAuthorizedException',
+        'Invalid access token',
+        'NotAuthorizedException',
+      );
+      mockSend.mockRejectedValueOnce(error);
 
       await expect(
         client.updateMe({
@@ -1145,7 +1146,7 @@ describe('CognitoUserClient', () => {
             email: 'updated@example.com',
           },
         }),
-      ).rejects.toThrow('UpdateMe error: Invalid access token');
+      ).rejects.toThrow('Invalid access token');
 
       // Verify UpdateUserAttributesCommand was still called
       expect(UpdateUserAttributesCommand).toHaveBeenCalled();
@@ -1192,22 +1193,23 @@ describe('CognitoUserClient', () => {
         client.deleteMe({
           authorization: '',
         }),
-      ).rejects.toThrow('DeleteMe error: No access token provided in authorization header');
+      ).rejects.toThrow('No access token provided in authorization header');
     });
 
     it('should throw an error when the delete call fails', async () => {
-      // Mock failed delete response
-      mockSend.mockRejectedValueOnce({
-        name: 'NotAuthorizedException',
-        message: 'Invalid access token',
-        code: 'NotAuthorizedException',
-      });
+      // Mock an error response
+      const error = createMockAwsError(
+        'NotAuthorizedException',
+        'Invalid access token',
+        'NotAuthorizedException',
+      );
+      mockSend.mockRejectedValueOnce(error);
 
       await expect(
         client.deleteMe({
           authorization: 'Bearer invalid-token',
         }),
-      ).rejects.toThrow('DeleteMe error: Invalid access token');
+      ).rejects.toThrow('Invalid access token');
 
       // Verify DeleteUserCommand was still called
       expect(DeleteUserCommand).toHaveBeenCalled();

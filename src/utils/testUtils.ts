@@ -91,3 +91,21 @@ export const createMockAdminGetUserResponse = (
     },
   };
 };
+
+/**
+ * Creates a mock AWS error for testing
+ * @param name - The error name/type (e.g., 'NotAuthorizedException')
+ * @param message - The error message
+ * @param code - The error code
+ * @returns A mock AWS error object
+ */
+export const createMockAwsError = (name: string, message: string, code: string): Error => {
+  const error = new Error(message);
+  error.name = name;
+
+  // Add code property using a proper type assertion
+  const awsError = error as Error & { code: string };
+  awsError.code = code;
+
+  return awsError;
+};
