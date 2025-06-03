@@ -278,10 +278,14 @@ try {
 
 ## Testing
 
-This library provides utility functions to help with testing your application code that uses the Cognito clients:
+This library provides utility functions to help with testing your application code that uses the Cognito clients. These testing utilities are available as a separate import:
 
 ```typescript
-import { createMockCognitoClient, createMockAuthResult, createMockAwsError } from 'cognito-client';
+// Import testing utilities from the separate entry point
+import { createMockCognitoClient, createMockAuthResult, createMockAwsError } from 'cognito-client/testing';
+
+// Note: You'll need to install @faker-js/faker as a dev dependency in your project
+// npm install --save-dev @faker-js/faker
 
 describe('Your Component', () => {
   let userClient;
@@ -341,7 +345,6 @@ describe('Your Component', () => {
     ).rejects.toThrow(error);
   });
 });
-```
 
 ## API Reference
 
@@ -350,3 +353,4 @@ For a full list of available methods and their parameters, please refer to the T
 ## License
 
 ISC
+```
